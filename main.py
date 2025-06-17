@@ -1,60 +1,20 @@
 import subprocess
-import wmi
-import time
-
-registered_serials = set()
-
-USB_FILE ="usb_list.txt"
-
-def read_file():
-    with open(USB_FILE,'r',encoding='utf-8')as f:
-        for line in f:
-            print(line)
-            registered_serials.add(line)
-
-def get_connected_usb_serials():
-    c = wmi.WMI()
-    usb_serials = []
-
-    for disk in c.Win32_DiskDrive():
-        if disk.InterfaceType == "USB":
-            serial = getattr(disk, 'SerialNumber', 'Yo‘q')
-            if serial not in registered_serials:
-                print(f"❌ Ro'yxatdan o'tmagan USB aniqlandi")
-                print(f"Model: {disk.Model}")
-                print(f"DeviceID: {disk.DeviceID}")
-                print(f"PNPDeviceID: {disk.PNPDeviceID}")
-                print(f"SerialNumber: {serial}")
-                print("-" * 40)
-                usb_serials.append(disk.PNPDeviceID)
-    return usb_serials
 
 
-def usb_kill():
-    DEVCON_PATH = r"devcon.exe"
-    for usb in get_connected_usb_serials():
-        device_id = fr"@{usb}"
-        print(f"➡ USB qurilma o‘chirilmoqda: {device_id}")
+EXE_FILE = 'usb_eject.exe'
 
-        # Avval disable qilib ko‘ramiz
-        subprocess.run(
-            [DEVCON_PATH, "disable", device_id],
-            capture_output=True, text=True
-        )
-        time.sleep(1)  # Qurilmani to‘liq bo‘shatish uchun kutamiz
-
-        # Endi remove qilamiz
+def eject_usb(pnp_id):
+    try:
         result = subprocess.run(
-            [DEVCON_PATH, "remove", device_id],
-            capture_output=True, text=True
+            [EXE_FILE, pnp_id],  # PNPDeviceID argument sifatida uzatiladi
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
-
         print(result.stdout)
-        print(result.stderr)
-        print("=" * 50)
+        if result.stderr:
+            print(f"[Eject xatosi] {result.stderr}")
+    except Exception as e:
+        print(f"[Subprocess xatosi] {e}")
 
-
-if __name__ == '__main__':
-    while True:
-        usb_kill()
-        time.sleep(3)  # Har 3 soniyada tekshirib chiqilsin
+eject_usb(r'USBSTOR\DISK&VEN_VENDORCO&PROD_PRODUCTCODE&REV_2.00\7956101095918431346&0')
