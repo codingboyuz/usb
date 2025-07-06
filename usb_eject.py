@@ -1,3 +1,4 @@
+import subprocess
 import sys
 
 import win32file
@@ -5,66 +6,40 @@ import win32con
 import ctypes
 import wmi
 
+EXE_FILE = r'D:\GitHub\usb\untitled2.exe'
+
 
 class UsbEject:
     def __init__(self):
         self.wmi = wmi.WMI()
-
-    @staticmethod
-    def __eject_drive(drive_letter):
-        drive_path = f"\\\\.\\{drive_letter[0]}:"
-        try:
-            handle = win32file.CreateFile(
-                drive_path,
-                win32con.GENERIC_READ,
-                win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE,
-                None,
-                win32con.OPEN_EXISTING,
-                0,
-                None
-            )
-
-            result = ctypes.windll.kernel32.DeviceIoControl(
-                handle.handle,
-                0x2D4808,  # IOCTL_STORAGE_EJECT_MEDIA
-                None,
-                0,
-                None,
-                0,
-                ctypes.byref(ctypes.c_ulong()),
-                None
-            )
-            handle.Close()
-
-            if result:
-                print(f"Qurilma chiqarildi: {drive_letter}")
-            else:
-                print(f"Qurilma chiqarilmadi: {drive_letter}")
-        except Exception as e:
-            print(f"[Xatolik] {drive_letter}: {e}")
-
     def eject_by_pnp(self, pnp_id_substring):
-        found = False
-        print(str(pnp_id_substring))
-
         for disk in self.wmi.Win32_DiskDrive():
             if pnp_id_substring in disk.PNPDeviceID:
-                found = True
-                for partition in disk.associators("Win32_DiskDriveToDiskPartition"):
-                    for logical_disk in partition.associators("Win32_LogicalDiskToPartition"):
-                        drive_letter = logical_disk.DeviceID
-                        self.__eject_drive(drive_letter)
-                        return
+                try:
+                    for partition in disk.associators("Win32_DiskDriveToDiskPartition"):
+                        for logical_disk in partition.associators("Win32_LogicalDiskToPartition"):
+                            drive_letter = logical_disk.DeviceID
+                            subprocess.run([EXE_FILE, drive_letter])
+                            return
+                except Exception as e:
+                    print(f"⚠️ Eject qilingan qurilmaga qayta murojaat: {e}")
+                return
+    def adb_set_usb_mode(mode: str):
+        """
+        Telefonni USB rejimini o‘zgartiradi.
+        mode: 'none' — faqat quvvat
+              'mtp' yoki 'mtp,adb' — fayl uzatish uchun
+        """
+        try:
+            cmd = ["adb", "shell", "svc", "usb", "setFunctions", mode]
+            result = subprocess.run(cmd, capture_output=True, text=True)
 
-        if not found:
-            print("Qurilma topilmadi yoki disk harfi yo'q")
+            if result.returncode == 0:
+                print(f"✅ Telefon USB rejimi: {mode}")
+            else:
+                print(f"❌ Xatolik (kod {result.returncode}): {result.stderr.strip()}")
 
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print(" Foydalanish: usbeject.exe <PNPDeviceID_substring>")
-        sys.exit(1)
-
-    pnp_substring = sys.argv[1]
-    print(f"pnp_substring {pnp_substring}")
-    ejector = UsbEject()
-    ejector.eject_by_pnp(pnp_substring)
+        except FileNotFoundError:
+            print("❌ ADB topilmadi. Iltimos, adb o‘rnatilganini tekshiring (Android SDK).")
+        except Exception as e:
+            print(f"❌ Nomaʼlum xatolik: {e}")

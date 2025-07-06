@@ -18,15 +18,12 @@ class UsbWatcher:
 
     def phone_checker(self):
         for device in self.wmi.Win32_PnPEntity():
-            if device.PNPClass == "WPD" and "MTP" in str(device.CompatibleID):
-                serial = getattr(device, 'SerialNumber', None)
-                self.db.log_access(device.Caption, device.Model, device.InterfaceType, device.Size, serial)
-                print(f"📱 Telefon topildi: {device.Name}")
+            if device.PNPClass == "WPD":
+                print(f"📱 Telefon aniqlandi: {device.Caption}")
                 print(f"PNPDeviceID: {device.PNPDeviceID}")
-
+                self.db.log_access(device.Caption, "WPD Device", "WPD", None, None)
+                self.eject.adb_set_usb_mode()
                 print("⚠️ Bu qurilmani chiqarib bo'lmaydi (MTP protokoli)")
-            else:
-                return None
 
     def check_connection_usb(self):
         for disk in self.wmi.Win32_DiskDrive():
@@ -49,8 +46,10 @@ if __name__ == '__main__':
 
     try:
         while True:
+            # usb.phone_checker()
+
             usb.check_connection_usb()
-            time.sleep(2)
+            time.sleep(1.0)
     except KeyboardInterrupt:
         print("\nDastur to'xtatildi")
     finally:
