@@ -6,9 +6,9 @@ import pythoncom
 from concurrent.futures import ThreadPoolExecutor
 
 """
-Bu qisim asosy  doimiy portni nazorat qiladi ulanishlarni tekshiradi  umuman o'chmasligi kerak bo'lagan app 
+Bu qisim asosy  doimiy portni nazorat qiladi ulanishlarni tekshiradi  umuman o'chmasligi kerak bo'lagan app
+ UsbWatcher alohida exe fayil bo'ladi va doimiy ishlaydi 
 """
-
 class UsbWatcher:
     def __init__(self):
         pythoncom.CoInitialize()  # WMI har bir thread uchun initialize qilinadi
