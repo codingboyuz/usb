@@ -7,6 +7,7 @@ class LocalDatabase:
     def __init__(self):
         # check_same_thread=False → ko‘p threadlar bilan ishlash uchun
         self.connection = sqlite3.connect(DB_FILE, check_same_thread=False)
+        self.connection.row_factory =sqlite3.Row
         self.init_db()
 
     def init_db(self):
@@ -54,10 +55,10 @@ class LocalDatabase:
             with self.connection:
                 cursor = self.connection.cursor()
                 cursor.execute("SELECT 1 FROM registered_devices WHERE serial = ?", (serial,))
-                return cursor.fetchone() is not None
+                return cursor.fetchall()
         except sqlite3.Error as e:
             print(f"Database error in is_serial_registered: {e}")
-            return False
+            return None
 
     def add_device(self, serial: str):
         try:
@@ -93,6 +94,23 @@ class LocalDatabase:
                 (username, password)
             )
             return cur.fetchone() is not None
+
+    # --- DB dan loglarni olish
+    def get_access_log(self):
+        try:
+            with self.connection:
+                cursor = self.connection.cursor()
+                cursor.execute(
+                    '''
+                    SELECT * FROM usb_access_log ORDER BY timestamp DESC
+                    '''
+                )
+                rows =cursor.fetchall()
+                return [dict(row) for row in rows]
+        except sqlite3.Error as e:
+            print(f"Access log get error {e}")
+            return []
+
 
     def close_connection(self):
         if self.connection:

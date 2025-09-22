@@ -1,6 +1,6 @@
 import subprocess
 import sys
-
+from  settings.base import EXE_MTP_EJECT
 import win32file
 import win32con
 import ctypes
@@ -12,7 +12,8 @@ disk harifini aniqlab chiqarib yuorishga tayorlaydi
 """
 class UsbEject:
 
-    def eject_by_pnp(self, pnp_id_substring):
+    @staticmethod
+    def eject_by_pnp(pnp_id_substring):
         import pythoncom
         import wmi
         pythoncom.CoInitialize()  # ✅ Har bir thread uchun boshlash
@@ -37,12 +38,12 @@ class UsbEject:
         """
         Telefonni USB rejimini o‘zgartiradi.
         """
-        exe_path = r"C:\Users\nmada\CLionProjects\untitled3\cmake-build-debug\untitled3.exe"
+        # exe_path = r"C:\Users\nmada\CLionProjects\untitled3\cmake-build-debug\untitled3.exe"
 
         try:
             # .exe ni phone_id argumenti bilan ishga tushirish
             result = subprocess.run(
-                [exe_path, mode],
+                [EXE_MTP_EJECT, mode],
                 capture_output=True,  # stdout va stderr ni yig‘ish
                 text=True,  # Chiqishni matn sifatida olish
                 encoding='utf-8'  # UTF-8 kodlash

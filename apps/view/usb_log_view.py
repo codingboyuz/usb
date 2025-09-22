@@ -1,63 +1,67 @@
 import flet as ft
-import sqlite3
-from settings.base import DB_FILE
+from apps.db.database import LocalDatabase
 
 
-def main(page: ft.Page):
-    page.title = "USB Access Logs"
-    page.scroll = "auto"
-    page.padding = 20
-    page.theme_mode = "dark"   # dark ham qilishingiz mumkin
+class UsbLogApp:
+    """USB Access loglarni ko‘rsatuvchi klass (UserControl talab qilinmaydi)."""
 
-    # --- DB dan loglarni olish
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT timestamp, caption, model, interface_type, size, serial "
-        "FROM usb_access_log ORDER BY timestamp DESC"
-    )
-    rows = cursor.fetchall()
-    conn.close()
+    def __init__(self):
+        self.local_db = LocalDatabase()
 
-    # --- DataTable ustunlari
-    table = ft.DataTable(
-        columns=[
-            ft.DataColumn(ft.Text("Time")),
-            ft.DataColumn(ft.Text("Caption")),
-            ft.DataColumn(ft.Text("Model")),
-            ft.DataColumn(ft.Text("Interface")),
-            ft.DataColumn(ft.Text("Size")),
-            ft.DataColumn(ft.Text("Serial")),
-        ],
-        rows=[
-            ft.DataRow(
-                cells=[
-                    ft.DataCell(ft.Text(r[0] or "")),
-                    ft.DataCell(ft.Text(r[1] or "")),
-                    ft.DataCell(ft.Text(r[2] or "")),
-                    ft.DataCell(ft.Text(r[3] or "")),
-                    ft.DataCell(ft.Text(r[4] or "")),
-                    ft.DataCell(ft.Text(r[5] or "")),
-                ]
-            )
-            for r in rows
-        ],
-    )
+    def view(self) -> ft.Control:
+        rows = self.local_db.get_access_log()
 
-    # --- Asosiy layout
-    page.add(
-        ft.Column(
-            controls=[
-                ft.Text("USB Access Log", size=24, weight="bold"),
-                ft.Divider(),
-                table
+        data_table = ft.DataTable(
+            expand=True,
+            heading_row_height=40,
+            data_row_min_height=36,
+            columns=[
+                ft.DataColumn(ft.Text("Time", weight="bold")),
+                ft.DataColumn(ft.Text("Caption", weight="bold")),
+                ft.DataColumn(ft.Text("Model", weight="bold")),
+                ft.DataColumn(ft.Text("Interface", weight="bold")),
+                ft.DataColumn(ft.Text("Size", weight="bold")),
+                ft.DataColumn(ft.Text("Serial", weight="bold")),
             ],
+            rows=[
+                ft.DataRow(
+                    cells=[
+                        ft.DataCell(ft.Text(r["timestamp"])),
+                        ft.DataCell(ft.Text(r["caption"])),
+                        ft.DataCell(ft.Text(r["model"])),
+                        ft.DataCell(ft.Text(r["interface_type"])),
+                        ft.DataCell(ft.Text(str(r["size"]))),
+                        ft.DataCell(ft.Text(r["serial"])),
+                    ]
+                )
+                for r in rows
+            ],
+        )
+
+        return ft.Column(
             expand=True,
             spacing=20,
+            controls=[
+                ft.Text("Noqonuniy ulangan qrulmalar", size=24, weight="bold"),
+                ft.Divider(),
+                ft.Container(data_table, expand=True),
+            ],
         )
-    )
+
+from register_usb_view import UsbRegisterAlterDialog
+def main(page: ft.Page):
+    page.title = "Usb Killer"
+    page.theme_mode = "light"
+    page.padding = 20
+    page.scroll = "auto"
+    page.horizontal_alignment = "stretch"
+    usb = UsbRegisterAlterDialog()
+
+    app = UsbLogApp()
+    page.floating_action_button  = ft.FloatingActionButton(icon="add",on_click=usb.view)
+
+    page.add(app.view())   # klassdan view() orqali Control ni qo‘shamiz
 
 
-# Flet ilovani ishga tushirish
 if __name__ == "__main__":
     ft.app(target=main)
