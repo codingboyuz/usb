@@ -6,6 +6,9 @@ import win32con
 import win32gui
 
 from apps.core.usb_watcher import UsbWatcher
+from datetime import datetime
+
+print(datetime.now(),)
 
 
 class DeviceMonitor:
