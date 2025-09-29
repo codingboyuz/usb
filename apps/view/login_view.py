@@ -48,7 +48,7 @@ class LoginView:
         else:
             print(f"else rows{rows}")
             self.page.open(
-                ft.SnackBar(ft.Text(f"Username yoki parol noto'g'ri", ), bgcolor=ft.Colors.RED, behavior="floating",duration=3000,a))
+                ft.SnackBar(ft.Text(f"Username yoki parol noto'g'ri", ), bgcolor=ft.Colors.RED, behavior="floating",duration=3000))
             self.page.update()
 
     def view(self) -> ft.View:
