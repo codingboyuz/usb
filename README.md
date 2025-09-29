@@ -162,3 +162,94 @@ end;
 
 
 shuni to'g'rila ikida dasturga untitled2.exe va usb_killer.exe uchun qil shartlar o'zgarmagan
+
+
+
+# Phone eject with C language
+
+telefoni eject qilishda biroz kop vaqt talab qilmoqda
+
+```C++
+  #include <windows.h>
+  #include <setupapi.h>
+  #include <cfgmgr32.h>
+  #include <stdio.h>
+  #include <string.h>
+  
+  int main(int argc, char *argv[]) {
+      if (argc < 2) {
+          printf("Xato: phone_id argumenti kiritilmadi.\n");
+          printf("Namuna: phone_eject.exe USB\\VID_2717&PID_FF48&MI_00\\7&593ED88&0&0000\n");
+          return 1;
+      }
+  
+      // ASCII argumentni Unicode ga aylantirish
+      size_t convertedChars = 0;
+      wchar_t inputDeviceId[256];
+      mbstowcs_s(&convertedChars, inputDeviceId, sizeof(inputDeviceId) / sizeof(wchar_t), argv[1], strlen(argv[1]) + 1);
+  
+      HDEVINFO deviceInfoSet;
+      SP_DEVINFO_DATA deviceInfoData;
+      DWORD i;
+      CONFIGRET status;
+      int found = 0;
+      const wchar_t* classInterfaces[] = { L"WPD", L"USB", NULL }; // Tekshiriladigan sinflar
+  
+      // Har bir sinfni alohida tekshirish
+      for (int classIndex = 0; classInterfaces[classIndex] != NULL; classIndex++) {
+          deviceInfoSet = SetupDiGetClassDevsW(NULL, classInterfaces[classIndex], NULL, DIGCF_ALLCLASSES | DIGCF_PRESENT);
+          if (deviceInfoSet == INVALID_HANDLE_VALUE) {
+              printf("%S sinfi uchun ma'lumotlar to'plami olingolmadi: %d\n", classInterfaces[classIndex], GetLastError());
+              continue;
+          }
+  
+          deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+  
+          // Har bir qurilmani tekshirish
+          for (i = 0; SetupDiEnumDeviceInfo(deviceInfoSet, i, &deviceInfoData); i++) {
+              WCHAR devID[256];
+              DWORD bufferSize = sizeof(devID);
+  
+              if (SetupDiGetDeviceInstanceIdW(deviceInfoSet, &deviceInfoData, devID, bufferSize, &bufferSize)) {
+                  // Qurilma ID’sida moslikni tekshirish
+                  if (wcsstr(devID, L"VID_2717&PID_FF48") != NULL || wcsicmp(devID, inputDeviceId) == 0) {
+                      printf("Qurilma topildi: %S (Sinf: %S)\n", devID, classInterfaces[classIndex]);
+                      found = 1;
+  
+                      DEVINST devInst;
+                      status = CM_Locate_DevNodeW(&devInst, devID, CM_LOCATE_DEVNODE_NORMAL);
+                      if (status != CR_SUCCESS) {
+                          printf("Qurilma nodeni topilmadi: %d\n", status);
+                          continue;
+                      }
+  
+                      // Qurilmani chiqarish
+                      status = CM_Request_Device_EjectW(devInst, NULL, NULL, 0, 0);
+                      if (status == CR_SUCCESS) {
+                          printf("Qurilma muvaffaqiyatli chiqarildi!\n");
+                          SetupDiDestroyDeviceInfoList(deviceInfoSet);
+                          return 0;
+                      } else {
+                          printf("Chiqarishda xatolik: %d\n", status);
+                          // Muqobil: Qurilmani faolsizlantirish
+                          status = CM_Disable_DevNode(devInst, 0);
+                          if (status == CR_SUCCESS) {
+                              printf("Qurilma faolsizlantirildi!\n");
+                              SetupDiDestroyDeviceInfoList(deviceInfoSet);
+                              return 0;
+                          } else {
+                              printf("Faolsizlantirishda xatolik: %d\n", status);
+                          }
+                      }
+                  }
+              }
+          }
+          SetupDiDestroyDeviceInfoList(deviceInfoSet);
+      }
+  
+      if (!found) {
+          printf("Qurilma topilmadi: %S\n", inputDeviceId);
+      }
+      return 1;
+  }
+```
