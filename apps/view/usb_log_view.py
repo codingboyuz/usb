@@ -1,84 +1,4 @@
-# import flet as ft
-# from apps.db.database import LocalDatabase
-#
-#
-# class UsbLogView:
-#     """USB Access loglarni ko‘rsatuvchi klass (UserControl talab qilinmaydi)."""
-#
-#     def __init__(self):
-#         self.local_db = LocalDatabase()
-#         self.get_registered = ft.DataTable(
-#             expand=True,
-#             heading_row_height=40,
-#             data_row_min_height=36,
-#             columns=[ft.DataColumn(ft.Text("ID", weight="bold")),
-#                      ft.DataColumn(ft.Text("Serial", weight="bold")), ],
-#             rows=[
-#
-#             ]
-#         )
-#
-#     def get_log_view(self) -> ft.Control:
-#         rows = self.local_db.get_access_log()
-#         print(rows)
-#
-#         data_table = ft.DataTable(
-#             expand=True,
-#             heading_row_height=40,
-#             data_row_min_height=36,
-#             columns=[
-#                 ft.DataColumn(ft.Text("Time", weight="bold")),
-#                 ft.DataColumn(ft.Text("Caption", weight="bold")),
-#                 ft.DataColumn(ft.Text("Model", weight="bold")),
-#                 ft.DataColumn(ft.Text("Interface", weight="bold")),
-#                 ft.DataColumn(ft.Text("Size", weight="bold")),
-#                 ft.DataColumn(ft.Text("Serial", weight="bold")),
-#             ],
-#             rows=[
-#                 ft.DataRow(
-#                     cells=[
-#                         ft.DataCell(ft.Text(r["timestamp"])),
-#                         ft.DataCell(ft.Text(r["caption"])),
-#                         ft.DataCell(ft.Text(r["model"])),
-#                         ft.DataCell(ft.Text(r["interface_type"])),
-#                         ft.DataCell(ft.Text(str(r["size"]))),
-#                         ft.DataCell(ft.Text(r["serial"])),
-#                     ]
-#                 )
-#                 for r in rows
-#             ],
-#         )
-#
-#         return ft.Column(
-#             expand=True,
-#             spacing=200,
-#             controls=[
-#
-#                 ft.Container(data_table, expand=True),
-#             ],
-#         )
-#
-#     def get_registered_refresh(self):
-#         print("Refresh")
-#         rows = self.local_db.get_registered()
-#         print(f"rows {rows}")
-#
-#         self.get_registered.rows = [
-#             ft.DataRow(cells=[
-#                 ft.DataCell(ft.Text(r["id"])),
-#                 ft.DataCell(ft.Text(r["serial"])),
-#             ])
-#             for r in rows]
-#         self.get_registered.update()
-#     def get_registered_view(self) -> ft.Control:
-#         self.get_registered_refresh()
-#         return ft.Column(
-#             expand=True,
-#             spacing=200,
-#             controls=[
-#                 self.get_registered
-#             ],
-#         )
+
 import flet as ft
 from apps.db.database import LocalDatabase
 
@@ -113,6 +33,7 @@ class UsbLogView:
         print(rows)
         self.registered_table.rows = [
             ft.DataRow(
+
                 cells=[
                     ft.DataCell(ft.Text(str(r["id"]))),
                     ft.DataCell(ft.Text(r["serial"])),
@@ -144,7 +65,6 @@ class UsbLogView:
                         ft.DataCell(ft.Text(r["caption"])),
                         ft.DataCell(ft.Text(r["model"])),
                         ft.DataCell(ft.Text(r["interface_type"])),
-
                         ft.DataCell(ft.Text(str(r["size"]))),
                         ft.DataCell(ft.Text(r["serial"])),
                     ]

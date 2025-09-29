@@ -1,31 +1,36 @@
 import flet as ft
-import sys
 
 
-def main(page: ft.Page):
-    page.title = "UsbGuard – O'chirish ruxsati"
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+class Data:
+    def __init__(self) -> None:
+        self.counter = 0
 
-    def check_password(e):
-        if password_field.value == "usb2024":
-            page.clean()
-            page.add(ft.Text("✅ Ruxsat berildi. Dastur o'chirilmoqda...", color="green"))
-            page.update()
-            sys.exit(0)
-        else:
-            page.snack_bar = ft.SnackBar(ft.Text("❌ Noto'g'ri parol!", color="white"), bgcolor="red")
-            page.snack_bar.open = True
-            page.update()
+    def increment(self):
+        self.counter += 1
 
-    password_field = ft.TextField(label="Parol", password=True, can_reveal_password=True, autofocus=True)
-    confirm_button = ft.ElevatedButton("Tasdiqlash", on_click=check_password)
+    def decrement(self):
+        self.counter -= 1
 
-    page.add(
-        ft.Text("🔐 Dastur o'chirilmoqda. Iltimos, administrator parolini kiriting.", text_align="center"),
-        password_field,
-        confirm_button
+
+d = Data()
+
+
+def main(page):
+    page.title = "SnackBar examples"
+
+    sb = ft.SnackBar(
+        content=ft.Text(f"You did it!"),
+        action="Undo it!",
+        on_action=lambda e: d.decrement(),
     )
 
+    def on_click(e):
+        d.increment()
+        sb.content.value = f"You did it x {d.counter}"
+        page.open(sb)
+        page.update()
 
-if __name__ == '__main__':
-    ft.app(target=main)
+    page.add(ft.ElevatedButton("Open SnackBar", on_click=on_click))
+
+
+ft.app(main)
