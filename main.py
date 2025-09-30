@@ -8,7 +8,6 @@ import win32gui
 from apps.core.usb_watcher import UsbWatcher
 from datetime import datetime
 
-print(datetime.now(),)
 
 
 class DeviceMonitor:
@@ -41,7 +40,8 @@ class DeviceMonitor:
                 print("❌ Device Removed")
         return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
 
-    def run(self):
+    @staticmethod
+    def run():
         print("Start monitoring (real-time)...")
         # Windows message loop
         while True:

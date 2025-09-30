@@ -1,10 +1,9 @@
 import flet as ft
 
-from apps.core.route.route import RouteService
+from apps.core.route.route import RouteService,RouteName
 from apps.view.login_view import LoginView
 from apps.view.usb_log_view import UsbLogView
 from register_usb_view import UsbRegisterAlterDialog
-
 
 class MainView:
     def __init__(self, page: ft.Page, log_view: UsbLogView):
@@ -14,7 +13,7 @@ class MainView:
 
     def view(self) -> ft.Control:
         return ft.View(
-            route='/main',
+            route=RouteName.MAIN_VIEW,
             bgcolor=ft.Colors.WHITE,
             scroll=ft.ScrollMode.ALWAYS,
             controls=[
@@ -63,17 +62,19 @@ def main(page: ft.Page):
     router = RouteService(
         page,
         {
-            "login": (LoginView, {}),
-            "main": (MainView, {"log_view": log_view}),
+            'login': (LoginView, {}),
+            'main': (MainView, {"log_view": log_view}),
         },
     )
 
     # ❗ Boshlang'ich sahifa uchun faqat .go() qo‘llang
-    page.go("/login")
+    page.go(RouteName.LOGIN_VIEW)
 
     # Jadvalni ma'lumot bilan to'ldirish
     log_view.refresh_registered()
     page.update()
 
 
-ft.app(target=main)
+# ✅ HOT RELOAD uchun
+if __name__ == "__main__":
+    ft.app(target=main, view=ft.AppView.FLET_APP, port=8550)

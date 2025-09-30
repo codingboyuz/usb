@@ -1,6 +1,6 @@
 import flet as ft
 
-from apps.core.route.route import RouteService
+from apps.core.route.route import RouteName
 from apps.db.database import LocalDatabase
 
 
@@ -10,7 +10,7 @@ class LoginView:
         self.local_db = LocalDatabase()
         self.page = page
 
-        self.username_text_field = ft.TextField(label='Username', value='admin', border_color='white')
+        self.username_text_field = ft.TextField(label='Username', value='admin', border_color='white',label_style=ft.TextStyle(color=ft.Colors.WHITE))
         self.password_text_field = ft.TextField(label='Password', border_color='white', password=True,
                                                 can_reveal_password=True, error=True)
 
@@ -42,19 +42,20 @@ class LoginView:
                                           password=str(password))
 
         if rows:
-            self.page.go('/main')
+            self.page.go(RouteName.MAIN_VIEW)
             self.page.update()
             print(f"if rows {rows}")
         else:
             print(f"else rows{rows}")
             self.page.open(
-                ft.SnackBar(ft.Text(f"Username yoki parol noto'g'ri", ), bgcolor=ft.Colors.RED, behavior="floating",duration=3000))
+                ft.SnackBar(ft.Text(f"Username yoki parol noto'g'ri", ), bgcolor=ft.Colors.RED, behavior="floating",
+                            duration=3000))
             self.page.update()
 
     def view(self) -> ft.View:
         # Markaziy o‘rnatish uchun eng tashqi container
         return ft.View(
-            route='/login',
+            route=RouteName.LOGIN_VIEW,
             bgcolor=ft.Colors.WHITE,
             controls=[
                 ft.Container(
@@ -118,77 +119,3 @@ class LoginView:
 
             ]
         )
-#
-# import flet as ft
-#
-# class LoginView(ft.View):
-#     def __init__(self, page: ft.Page):
-#         super().__init__(route="/")
-#         self.page = page
-#
-#         self.username = ft.TextField(label="Username")
-#         self.password = ft.TextField(label="Password", password=True, can_reveal_password=True)
-#         self.info = ft.Text()
-#
-#         # View tarkibi
-#         self.controls = [
-#             ft.AppBar(title=ft.Text("Login")),
-#             ft.Column(
-#                 [
-#                     self.username,
-#                     self.password,
-#                     ft.ElevatedButton("Login", on_click=self.do_login),
-#                     self.info,
-#                 ],
-#                 alignment=ft.MainAxisAlignment.CENTER,
-#                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-#             ),
-#         ]
-#
-#     def do_login(self, e):
-#         if self.username.value == "admin" and self.password.value == "123":
-#             self.page.go("/main")
-#         else:
-#             self.info.value = "❌ Noto‘g‘ri login yoki parol!"
-#             self.page.update()
-#
-#
-#
-# class MainView(ft.View):
-#     def __init__(self, page: ft.Page):
-#         super().__init__(route="/main")
-#         self.page = page
-#
-#         self.controls = [
-#             ft.AppBar(title=ft.Text("Main View")),
-#             ft.Column(
-#                 [
-#                     ft.Text("Salom, admin!", size=24, weight=ft.FontWeight.BOLD),
-#                     ft.ElevatedButton("Log out", on_click=self.logout),
-#                 ],
-#                 alignment=ft.MainAxisAlignment.CENTER,
-#                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-#             ),
-#         ]
-#
-#     def logout(self, e):
-#         self.page.go("/")
-#
-#
-#
-# # def main(page: ft.Page):
-# #     page.title = "Flet Routing (Class-based)"
-# #
-# #     # Route o‘zgarganda sahifani yangilash
-# #     def route_change(e: ft.RouteChangeEvent):
-# #         page.views.clear()
-# #         if page.route == "/":
-# #             page.views.append(LoginView(page))
-# #         elif page.route == "/main":
-# #             page.views.append(MainView(page))
-# #         page.update()
-# #
-# #     page.on_route_change = route_change
-# #     page.go("/")   # start route
-# #
-# # ft.app(target=main)

@@ -1,6 +1,18 @@
 # apps/core/route/route.py
 import flet as ft
 from typing import Union, Tuple, Dict, Any
+from enum import  Enum
+
+
+class RouteName:
+    LOGIN_VIEW = "/login"
+    MAIN_VIEW = "/main"
+    DEFAULT_VIEW = "/"
+
+
+
+
+
 
 class RouteService:
     """
@@ -18,7 +30,7 @@ class RouteService:
 
     def _on_route_change(self, e: ft.RouteChangeEvent):
         self.page.views.clear()
-        key = e.route.strip("/")
+        key = e.route.strip(RouteName.DEFAULT_VIEW)
 
         if key in self.routes:
             view_class, kwargs = self.routes[key]
@@ -26,6 +38,6 @@ class RouteService:
             # ✅ instance.view() ft.View qaytaradi
             self.page.views.append(instance.view())
         else:
-            self.page.views.append(ft.View("/", [ft.Text("404 - Sahifa topilmadi")]))
+            self.page.views.append(ft.View(RouteName.DEFAULT_VIEW, [ft.Text("404 - Sahifa topilmadi")]))
 
         self.page.update()

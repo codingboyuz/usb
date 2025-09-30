@@ -25,14 +25,16 @@ class LocalDatabase:
             # USB ulanish loglari
             self.connection.execute('''
             CREATE TABLE IF NOT EXISTS usb_access_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp DATETIME DEFAULT (datetime('now','localtime')),
-                caption TEXT,
-                model TEXT,
-                interface_type TEXT,
-                size TEXT,
-                serial TEXT
-            )''')
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME DEFAULT (datetime('now','localtime')),
+            caption TEXT,
+            model TEXT,
+            interface_type TEXT,
+            size TEXT,
+            serial TEXT
+            )
+            '''
+                                    )
 
             # ✅ Admin foydalanuvchilari jadvali
             self.connection.execute('''
@@ -53,15 +55,17 @@ class LocalDatabase:
                 print("✅ Default admin foydalanuvchi yaratildi (username='admin', password='123456')")
 
     # ---- USB bilan ishlovchi metodlar ----
-    def is_serial_registered(self, serial):
+    def is_serial_registered(self, serial: str) -> bool:
         try:
-            with self.connection:
-                cursor = self.connection.cursor()
-                cursor.execute("SELECT 1 FROM registered_devices WHERE serial = ?", (serial,))
-                return cursor.fetchall()
+            cursor = self.connection.cursor()
+            cursor.execute(
+                "SELECT 1 FROM registered_devices WHERE serial = ?",
+                (serial,)
+            )
+            return cursor.fetchone() is not None  # ✅ True/False qaytaradi
         except sqlite3.Error as e:
             print(f"Database error in is_serial_registered: {e}")
-            return None
+            return False
 
     # Usblarni dbga yozish funksiyasi
     def add_device(self, serial: str):
@@ -72,7 +76,6 @@ class LocalDatabase:
                     (serial,))
         except sqlite3.Error as e:
             print(f"Database error in registered_devices: {e}")
-
 
     def get_registered(self):
         try:
@@ -91,13 +94,12 @@ class LocalDatabase:
             return []
 
     # Ro'yxatdan o'tmagan usb ulanishlarni yozib borish funksiyasi
-    def log_access(self, caption: str, model: str, interface_type: str, size: str, serial: str):
+    def log_access(self, caption: str, model: str, interface_type: str, size: str, serial: str)-> bool:
         try:
             with self.connection:
                 self.connection.execute(
-                    "INSERT INTO usb_access_log "
-                    "(caption, model, interface_type, size, serial) "
-                    "VALUES (?,?,?,?,?,?)",
+                    "INSERT INTO usb_access_log (caption, model, interface_type, size, serial) VALUES (?,?,?,?,?)"
+,
                     (caption, model, interface_type, size, serial)
                 )
                 print(f"✅ Log yozildi: {caption}")

@@ -24,8 +24,9 @@ class UsbEject:
                     try:
                         for partition in disk.associators("Win32_DiskDriveToDiskPartition"):
                             for logical_disk in partition.associators("Win32_LogicalDiskToPartition"):
-                                drive_letter = logical_disk.DeviceID
-                                subprocess.run([EXE_USB_EJECT, drive_letter])
+
+                                print(EXE_USB_EJECT)
+                                subprocess.run([EXE_USB_EJECT, logical_disk.DeviceID])
                                 return
                     except Exception as e:
                         print(f"Eject qilingan qurilmaga qayta murojaat: {e}")
