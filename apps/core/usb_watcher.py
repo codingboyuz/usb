@@ -8,6 +8,7 @@ from settings.base import EXE_USB_EJECT
 Bu qisim asosy  doimiy portni nazorat qiladi ulanishlarni tekshiradi  umuman o'chmasligi kerak bo'lagan app
  UsbWatcher alohida exe fayil bo'ladi va doimiy ishlaydi 
 """
+
 class UsbWatcher:
     def __init__(self):
         self.db = LocalDatabase()
@@ -26,6 +27,7 @@ class UsbWatcher:
                 print(f"PNPDeviceID: {device.PNPDeviceID}")
                 self.db.log_access(device.Caption, "WPD Device", "WPD", None, None)
                 self.eject.mtp_connection_checker(mode=device.PNPDeviceID)
+
 
     # def check_connection_usb(self):
     #     import pythoncom, wmi
@@ -64,6 +66,9 @@ class UsbWatcher:
     #                     print(f"✅ Bu USB allaqachon ro‘yxatdan o‘tgan {serial}")
     #     finally:
     #         pythoncom.CoUninitialize()
+
+
+
     def check_connection_usb(self):
         import pythoncom, wmi
         pythoncom.CoInitialize()
@@ -113,6 +118,15 @@ class UsbWatcher:
                     print(f"⚠️ Diskni tekshirishda xato: {inner}")
         finally:
             pythoncom.CoUninitialize()
+
+
+
+
+
+
+
+
+
 
 # if __name__ == '__main__':
 #     usb = UsbWatcher()

@@ -10,8 +10,8 @@ class LoginView:
         self.local_db = LocalDatabase()
         self.page = page
 
-        self.username_text_field = ft.TextField(label='Username', value='admin', border_color='white',label_style=ft.TextStyle(color=ft.Colors.WHITE))
-        self.password_text_field = ft.TextField(label='Password', border_color='white', password=True,
+        self.username_text_field = ft.TextField(label='Username', value='admin', border_color='white',label_style=ft.TextStyle(color=ft.Colors.WHITE),)
+        self.password_text_field = ft.TextField(label='Password', border_color='white', password=True,cursor_color="white",selection_color="red",
                                                 can_reveal_password=True, error=True)
 
     def login_click_btn(self, e):
@@ -26,7 +26,7 @@ class LoginView:
 
             return
         elif not username:
-            self.username_text_field.error_text = "Password bo'sh qolib ketdi."
+            self.username_text_field.error_text = "Username bo'sh qolib ketdi."
             self.page.update()
 
             return

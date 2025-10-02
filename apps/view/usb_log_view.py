@@ -21,7 +21,7 @@ class UsbLogView:
             ],
             rows=[],   # dastlab bo'sh; sahifaga qo'shgandan so'ng to'ldiramiz
         )
-        self._registered_view = ft.Column(expand=True, controls=[self.registered_table])
+        self._registered_view = ft.Column(expand=True, controls=[self.registered_table],scroll=ft.ScrollMode.AUTO)
 
     def build_registered_view(self) -> ft.Control:
         """UI: ro'yxatga olingan qurilmalar bo'limi (update chaqirmaydi)."""
@@ -72,4 +72,4 @@ class UsbLogView:
                 for r in rows
             ],
         )
-        return ft.Column(expand=True, controls=[log_table])
+        return ft.Column(expand=True, controls=[log_table],scroll=ft.ScrollMode.AUTO)

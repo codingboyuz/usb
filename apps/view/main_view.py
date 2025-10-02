@@ -15,7 +15,6 @@ class MainView:
         return ft.View(
             route=RouteName.MAIN_VIEW,
             bgcolor=ft.Colors.WHITE,
-            scroll=ft.ScrollMode.ALWAYS,
             controls=[
                 ft.Tabs(
                     adaptive=True,
