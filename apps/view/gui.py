@@ -1,76 +1,82 @@
-import subprocess
-import os
-from settings.base import EXE_USB_EJECT
+import wmi
+import pythoncom
+
+# Ulanish turini aniqlash uchun GUID'lar
+GUID_WPD = "{e21287e0-1f74-47dc-873d-1a00019389c1}"
+GUID_DISKDRIVE = "{4d36e967-e325-11ce-bfc1-08002be10318}"
 
 
-def eject_usb_device(pnp_device_id):
+def get_connected_usb_devices():
     """
-    Tuzilgan C dasturini chaqirib, USB qurilmasini chiqaradi.
-
-    :param pnp_device_id: USBSTOR\DISK&VEN_... kabi Device Instance ID.
-    :return: (bool, str) - Muvaffaqiyat holati va xabar.
+    Tizimda ulangan barcha USB disklarni va MTP qurilmalarni topadi.
     """
+    devices_list = []
 
-    # 1. C dasturining yo'lini aniqlash
-    # exe_path ni o'zingizning to'g'ri yo'lingizga o'zgartiring!
-
-    # Agar C dasturi mavjud bo'lmasa
-    if not os.path.exists(EXE_USB_EJECT):
-        return False, f"Xato: Eject dasturi topilmadi: {EXE_USB_EJECT}"
+    # Har bir thread uchun COM ulanishini boshlash muhim
+    pythoncom.CoInitialize()
 
     try:
-        # 2. subprocess.run orqali C dasturini chaqirish
-        # 'shell=True' administrator huquqlari bilan ishlashga yordam beradi,
-        # ammo 'check=True' xato bo'lsa istisno tashlaydi
-        result = subprocess.run(
-            [EXE_USB_EJECT, pnp_device_id],  # Argumentlar ro'yxati
-            capture_output=True,  # Natijani va xatoni ushlab turish
-            text=True,  # Natijani string sifatida olish
-            check=False,  # Xato kodini qaytarsa ham istisno tashlamaslik
-            creationflags=subprocess.CREATE_NO_WINDOW  # Konsol oynasini yashirish
-        )
+        w = wmi.WMI()
 
-        # 3. Natijalarni tekshirish
+        # Barcha PnP qurilmalarni tekshirish
+        for device in w.Win32_PnPEntity():
+            class_guid = getattr(device, 'ClassGuid', None)
+            pnp_id = getattr(device, 'PNPDeviceID', None)
+            name = getattr(device, 'Name', 'Noma\'lum')
 
-        # Exit code 0 - muvaffaqiyat
-        if result.returncode == 0:
-            return True, f"Qurilma muvaffaqiyatli chiqarildi: {pnp_device_id}"
+            if not class_guid or not pnp_id:
+                continue
 
-        # Exit code 1 - Eject qilish muvaffaqiyatsiz tugadi (VETO bo'lishi mumkin)
-        elif result.returncode == 1:
-            error_output = result.stderr.strip()
+            class_guid_formatted = class_guid.lower().strip('{}')
+            pnp_id_upper = pnp_id.upper()
 
-            # Agar C dasturidan VETO sababi kelgan bo'lsa
-            if error_output.startswith("VETO:"):
-                veto_code = error_output.split(":")[1]
-                return False, f"Qurilmani chiqarish rad etildi (VETO: {veto_code}). Fayllar hali ham ochiq bo'lishi mumkin."
+            device_info = {
+                'Name': name,
+                'PNP_ID': pnp_id,
+                'Type': 'UNKNOWN',
+                'Is_USB': False
+            }
 
-            return False, f"Qurilmani chiqarish muvaffaqiyatsiz tugadi. Noma'lum xato. stderr: {error_output}"
+            # 1. MTP / WPD (Telefonlar)
+            if GUID_WPD.strip('{}') in class_guid_formatted:
+                device_info['Type'] = 'MTP/WPD (Telefon)'
+                devices_list.append(device_info)
 
-        # Exit code 2 - Argumentlar xatosi (C kodida o'rnatilgan)
-        elif result.returncode == 2:
-            return False, f"Eject dasturi xatosi: Argumentlar noto'g'ri. stderr: {result.stderr.strip()}"
+            # 2. USB Mass Storage (Disklar, Flashkalar)
+            elif GUID_DISKDRIVE.strip('{}') in class_guid_formatted:
+                # Faqat USB orqali ulangan Disk Drives ni qabul qilamiz
+                if 'USB' in pnp_id_upper or 'USBSTOR' in pnp_id_upper:
+                    serial = getattr(device, 'SerialNumber', 'N/A')
+                    device_info['Type'] = 'USB Disk (Mass Storage)'
+                    device_info['Is_USB'] = True
+                    device_info['Serial'] = serial
+                    devices_list.append(device_info)
 
-        # Boshqa xato kodlari
-        else:
-            return False, f"Noma'lum xato. Chiqish kodi: {result.returncode}. stderr: {result.stderr.strip()}"
+            # Agar siz oddiy USB qurilmalarni ham ko'rmoqchi bo'lsangiz (klaviatura, sichqoncha emas)
+            # elif 'USB\' in pnp_id_upper and 'VID' in pnp_id_upper:
+            #     # Bu yerda boshqa USB qurilmalar ham aniqlanadi (masalan, hublar)
+            #     pass
 
-    except FileNotFoundError:
-        return False, f"Eject dasturi topilmadi. Yo'l: {EXE_USB_EJECT}"
     except Exception as e:
-        return False, f"Subprocess ishga tushirishda kutilmagan xato: {e}"
+        print(f"❌ WMI so‘rovida xato: {e}")
+
+    finally:
+        pythoncom.CoUninitialize()
+
+    return devices_list
 
 
-# --- Sinov uchun foydalanish ---
+# --- Dasturni sinab ko'rish ---
+if __name__ == "__main__":
+    print("--- Ulangan USB va MTP qurilmalar ro‘yxati ---")
+    devices = get_connected_usb_devices()
 
-# Sizning Python kodingizdan keladigan ID
-device_id = r"USBSTOR\DISK&VEN_VENDORCO&PROD_PRODUCTCODE&REV_2.00\3759361002453620343&0"
-
-# O'zingizning haqiqiy ID ni qo'ying
-# misol_id = r"USBSTOR\DISK&VEN_SAMSUNG&PROD_FLASH_DRIVE&REV_1100\0300096C617FA101&0"
-# success, message = eject_usb_device(misol_id)
-
-success, message = eject_usb_device(device_id)
-
-print(f"Holat: {'Muvaffaqiyatli' if success else 'Xato'}")
-print(f"Xabar: {message}")
+    if devices:
+        for i, dev in enumerate(devices):
+            print(f"\n{i + 1}. Qurilma: {dev['Name']}")
+            print(f"   Tur: {dev['Type']}")
+            print(f"   PNP ID: {dev['PNP_ID'][:30]}...")
+            if 'Serial' in dev:
+                print(f"   Serial: {dev['Serial']}")
+    else:
+        print("Hech qanday faol USB yoki MTP qurilma topilmadi.")

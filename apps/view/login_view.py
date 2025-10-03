@@ -1,5 +1,4 @@
 import flet as ft
-
 from apps.core.route.route import RouteName
 from apps.db.database import LocalDatabase
 
@@ -10,9 +9,16 @@ class LoginView:
         self.local_db = LocalDatabase()
         self.page = page
 
-        self.username_text_field = ft.TextField(label='Username', value='admin', border_color='white',label_style=ft.TextStyle(color=ft.Colors.WHITE),)
-        self.password_text_field = ft.TextField(label='Password', border_color='white', password=True,cursor_color="white",selection_color="red",
-                                                can_reveal_password=True, error=True)
+        self.username_text_field = ft.TextField(label='Username', value='admin', border_color='white',
+                                                label_style=ft.TextStyle(color=ft.Colors.WHITE),
+                                                text_style=ft.TextStyle(weight=ft.FontWeight.W_500,
+                                                                        color=ft.Colors.WHITE))
+        self.password_text_field = ft.TextField(label='Password', border_color='white', password=True,
+                                                cursor_color="white", selection_color="red",
+                                                label_style=ft.TextStyle(color=ft.Colors.WHITE),
+                                                text_style=ft.TextStyle(weight=ft.FontWeight.W_500,
+                                                                        color=ft.Colors.WHITE),
+                                                can_reveal_password=True, error=True,on_submit=self.login_click_btn)
 
     def login_click_btn(self, e):
 
@@ -66,16 +72,15 @@ class LoginView:
                         height=350,
                         border_radius=8,
                         alignment=ft.alignment.center,
-                        bgcolor="white",
+                        bgcolor=ft.Colors.WHITE,
                         shadow=[
-                            ft.BoxShadow(spread_radius=1, blur_radius=15, color="white", offset=ft.Offset(-6, -6)),
+                            ft.BoxShadow(spread_radius=1, blur_radius=15, color=ft.Colors.WHITE, offset=ft.Offset(-6, -6)),
                             ft.BoxShadow(spread_radius=1, blur_radius=15, color="#bebebe", offset=ft.Offset(6, 6)),
                         ],
                         content=ft.Row(
                             [
                                 ft.Container(
                                     expand=True,
-                                    # bgcolor="blue",
                                     content=ft.Image(
                                         expand=1,
                                         src=f'../assets/images/logo.png',
@@ -100,7 +105,8 @@ class LoginView:
                                                 height=40,
                                                 style=ft.ButtonStyle(
                                                     shape=ft.RoundedRectangleBorder(radius=4),
-                                                    bgcolor=ft.Colors.WHITE,
+                                                    bgcolor=ft.Colors.WHITE,color="#00CFFF",
+                                                    text_style=ft.TextStyle(weight=ft.FontWeight.BOLD)
                                                 ),
                                             ),
                                         ],

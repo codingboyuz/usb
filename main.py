@@ -30,16 +30,21 @@ class DeviceMonitor:
 
     def wnd_proc(self, hwnd, msg, wparam, lparam):
         if msg == win32con.WM_DEVICECHANGE:
-            if wparam == win32con.DBT_DEVICEARRIVAL:   # USB ulanadi
-                print(f"🔌 Device Connected {wparam}")
-                threading.Thread(target=self.watcher.phone_checker, daemon=True).start()
+            if wparam == win32con.DBT_DEVICEARRIVAL:
+                print(f"🔌 Device Connected (Arrival) {wparam}")
+                # Kutilganidek ishga tushirish
                 threading.Thread(target=self.watcher.check_connection_usb, daemon=True).start()
+                threading.Thread(target=self.watcher.phone_checker, daemon=True).start()
 
+            # Bu qatorni qayta qo'shing
+            elif wparam == win32con.DBT_DEVNODES_CHANGED:
+                print("🔄 Device Node Changed (Qurilma drayveri yangilandi)")
+                # Drayver o'rnatilganidan keyin qayta tekshirish
+                threading.Thread(target=self.watcher.phone_checker, daemon=True).start()
 
-            elif wparam == win32con.DBT_DEVICEREMOVECOMPLETE:  # USB uziladi
+            elif wparam == win32con.DBT_DEVICEREMOVECOMPLETE:
                 print("❌ Device Removed")
         return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
-
     @staticmethod
     def run():
         print("Start monitoring (real-time)...")

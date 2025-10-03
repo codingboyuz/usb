@@ -1,4 +1,3 @@
-import subprocess
 from apps.db.database import LocalDatabase
 from apps.core.usb_eject import UsbEject
 from concurrent.futures import ThreadPoolExecutor
@@ -16,17 +15,51 @@ class UsbWatcher:
         # ✅ Maksimal 10 ta thread bir vaqtning o'zida eject bajaradi
         self.executor = ThreadPoolExecutor(max_workers=10)
 
+
     def phone_checker(self):
-        import pythoncom, wmi
-        pythoncom.CoInitialize()  # WMI har bir thread uchun initialize qilinadi
-        w = wmi.WMI()
-        for device in w.Win32_PnPEntity():
-            # ulangan telefoni aniqlash
-            if device.PNPClass == "WPD" and "MTP" in str(device.CompatibleID):
-                print(f"📱 Telefon aniqlandi: {device.Caption}")
-                print(f"PNPDeviceID: {device.PNPDeviceID}")
-                self.db.log_access(device.Caption, "WPD Device", "WPD", None, None)
-                self.eject.mtp_connection_checker(mode=device.PNPDeviceID)
+        import pythoncom
+        import wmi
+
+        """
+        MTP/WPD qurilmalarni aniqlaydi (telefonlar, planshetlar).
+        """
+        print("🔍 MTP/WPD qurilmalarni qidirish boshlandi")
+        try:
+            pythoncom.CoInitialize()  # Har bir thread uchun COM initialize
+            w = wmi.WMI()
+
+            for device in w.Win32_PnPEntity():
+                try:
+                    # MTP/WPD qurilmalarni aniqlash uchun kengroq shartlar
+                    pnp_class = getattr(device, 'PNPClass', None) or ""
+                    name = getattr(device, 'Name', 'Noma\'lum qurilma')
+                    compatible_id = str(getattr(device, 'CompatibleID', ''))
+                    device_id = getattr(device, 'DeviceID', '')
+
+                    # MTP yoki WPD qurilmalarni tekshirish
+                    if (pnp_class.upper() in ['WPD', 'PORTABLEDEVICE'] or
+                            any(keyword in compatible_id.upper() for keyword in ['MTP', 'WPD']) or
+                            any(keyword in name.upper() for keyword in ['MTP', 'PORTABLE DEVICE', 'PHONE'])):
+                        # print(f"📱 Telefon aniqlandi: {name}")
+                        # print(f"  PNPDeviceID: {device_id}")
+                        # print(f"  PNPClass: {pnp_class}")
+                        # print(f"  CompatibleID: {compatible_id}")
+                        # print("*"*50)
+                        # print("\n")
+
+                        # Ma'lumotlarni bazaga yozish
+                        self.db.log_access(name, "WPD Device", pnp_class, None, None)
+
+                        # MTP ulanishini tekshirish
+                        self.eject.mtp_connection_checker(mode=device_id)
+
+                except Exception as inner_e:
+                    print(f"⚠️ Qurilma tekshirishda xato: {inner_e}")
+
+        except Exception as e:
+            print(f"❌ MTP/WPD qidirishda xato: {e}")
+        finally:
+            pythoncom.CoUninitialize()  # COM resurslarini tozalash
 
 
     # def check_connection_usb(self):
@@ -70,11 +103,15 @@ class UsbWatcher:
 
 
     def check_connection_usb(self):
+        print("run USB connection search ")
+
         import pythoncom, wmi
         pythoncom.CoInitialize()
         try:
             w = wmi.WMI()
             for disk in w.Win32_DiskDrive():
+                # print("run USB connection search with for loop")
+
                 try:
                     # ❗ faqat USB disklarni tekshirish
                     if disk.InterfaceType != 'USB':
@@ -93,17 +130,16 @@ class UsbWatcher:
 
                     if not registered:
                         print(disk.PNPDeviceID)
-                        # self.eject.eject_by_pnp(pnp_id_substring=disk.PNPDeviceID)
-                        # subprocess.run([EXE_USB_EJECT, disk.PNPDeviceID])
-                        try:
-                            pnp_id = str(disk.PNPDeviceID)
-                            print("PNPDeviceID yuborilmoqda:", pnp_id)
-
-                            # ✅ argumentni to‘liq yuborish
-                            subprocess.run(f'"{EXE_USB_EJECT}" "{disk.PNPDeviceID}"', shell=True)
-
-                        except Exception as e:
-                            print(f"Eject xatolik: {e}")
+                        self.eject.eject_usb_device(pnp_device_id=disk.PNPDeviceID)
+                        # try:
+                        #     pnp_id = str(disk.PNPDeviceID)
+                        #     print("PNPDeviceID yuborilmoqda:", pnp_id)
+                        #
+                        #     # ✅ argumentni to‘liq yuborish
+                        #     # subprocess.run(f'"{EXE_USB_EJECT}" "{disk.PNPDeviceID}"', shell=True)
+                        #
+                        # except Exception as e:
+                        #     print(f"Eject xatolik: {e}")
 
                         self.db.log_access(
                             disk.Caption,

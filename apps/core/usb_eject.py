@@ -1,6 +1,7 @@
 import subprocess
 import sys
 from  settings.base import EXE_MTP_EJECT
+import os
 import win32file
 import win32con
 import ctypes
@@ -13,26 +14,55 @@ disk harifini aniqlab chiqarib yuorishga tayorlaydi
 class UsbEject:
 
     @staticmethod
-    def eject_by_pnp(pnp_id_substring):
-        import pythoncom
-        import wmi
-        pythoncom.CoInitialize()  # ✅ Har bir thread uchun boshlash
-        try:
-            w = wmi.WMI()  # ✅ Har safar yangi WMI sessiya
-            for disk in w.Win32_DiskDrive():
-                if pnp_id_substring in disk.PNPDeviceID:
-                    try:
-                        for partition in disk.associators("Win32_DiskDriveToDiskPartition"):
-                            for logical_disk in partition.associators("Win32_LogicalDiskToPartition"):
+    def eject_usb_device(pnp_device_id):
+        """
+        Tuzilgan C dasturini chaqirib, USB qurilmasini chiqaradi.
 
-                                print(EXE_USB_EJECT)
-                                subprocess.run([EXE_USB_EJECT, logical_disk.DeviceID])
-                                return
-                    except Exception as e:
-                        print(f"Eject qilingan qurilmaga qayta murojaat: {e}")
-                    return
-        finally:
-            pythoncom.CoUninitialize()  # ✅ Har doim COM tozalash
+        :param pnp_device_id: USBSTOR\DISK&VEN_... kabi Device Instance ID.
+        :return: (bool, str) - Muvaffaqiyat holati va xabar.
+        """
+
+
+        try:
+            # 2. subprocess.run orqali C dasturini chaqirish
+            # 'shell=True' administrator huquqlari bilan ishlashga yordam beradi,
+            # ammo 'check=True' xato bo'lsa istisno tashlaydi
+            result = subprocess.run(
+                [EXE_USB_EJECT, pnp_device_id],  # Argumentlar ro'yxati
+                capture_output=True,  # Natijani va xatoni ushlab turish
+                text=True,  # Natijani string sifatida olish
+                check=False,  # Xato kodini qaytarsa ham istisno tashlamaslik
+                creationflags=subprocess.CREATE_NO_WINDOW  # Konsol oynasini yashirish
+            )
+
+            # 3. Natijalarni tekshirish
+
+            # Exit code 0 - muvaffaqiyat
+            if result.returncode == 0:
+                return True, f"Qurilma muvaffaqiyatli chiqarildi: {pnp_device_id}"
+
+            # Exit code 1 - Eject qilish muvaffaqiyatsiz tugadi (VETO bo'lishi mumkin)
+            elif result.returncode == 1:
+                error_output = result.stderr.strip()
+
+                # Agar C dasturidan VETO sababi kelgan bo'lsa
+                if error_output.startswith("VETO:"):
+                    veto_code = error_output.split(":")[1]
+                    print( f"VETO:=============>Qurilmani chiqarish rad etildi (VETO: {veto_code}). Fayllar hali ham ochiq bo'lishi mumkin.")
+                    return False, f"Qurilmani chiqarish rad etildi (VETO: {veto_code}). Fayllar hali ham ochiq bo'lishi mumkin."
+
+                return False, f"Qurilmani chiqarish muvaffaqiyatsiz tugadi. Noma'lum xato. stderr: {error_output}"
+
+            # Exit code 2 - Argumentlar xatosi (C kodida o'rnatilgan)
+            elif result.returncode == 2:
+                return False, f"Eject dasturi xatosi: Argumentlar noto'g'ri. stderr: {result.stderr.strip()}"
+
+            # Boshqa xato kodlari
+            else:
+                return False, f"Noma'lum xato. Chiqish kodi: {result.returncode}. stderr: {result.stderr.strip()}"
+
+        except Exception as e:
+            return False, f"Subprocess ishga tushirishda kutilmagan xato: {e}"
 
     @staticmethod
     def mtp_connection_checker(mode):
