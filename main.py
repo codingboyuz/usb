@@ -45,6 +45,7 @@ class DeviceMonitor:
             elif wparam == win32con.DBT_DEVICEREMOVECOMPLETE:
                 print("❌ Device Removed")
         return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
+
     @staticmethod
     def run():
         print("Start monitoring (real-time)...")

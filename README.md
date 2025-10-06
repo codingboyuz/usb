@@ -253,3 +253,227 @@ telefoni eject qilishda biroz kop vaqt talab qilmoqda
       return 1;
   }
 ```
+
+
+
+wmi Win32_PnPEntity orqali chiqgan ma'limot
+```json
+    instance of Win32_PnPEntity
+    {
+        Caption = "D:\\";
+        ClassGuid = "{eec5ad98-8080-425f-922a-dabf3de3f69a}";
+        CompatibleID = {"wpdbusenum\\fs", "SWD\\Generic"};
+        ConfigManagerErrorCode = 0;
+        ConfigManagerUserConfig = FALSE;
+        CreationClassName = "Win32_PnPEntity";
+        Description = "UDisk           ";
+        DeviceID = "SWD\\WPDBUSENUM\\_??_USBSTOR#DISK&VEN_GENERAL&PROD_UDISK&REV_5.00#7&339ADA2C&0&_&0#{53F56307-B6BF-11D0-94F2-00A0C91EFB8B}";
+        Manufacturer = "General ";
+        Name = "D:\\";
+        PNPClass = "WPD";
+        PNPDeviceID = "SWD\\WPDBUSENUM\\_??_USBSTOR#DISK&VEN_GENERAL&PROD_UDISK&REV_5.00#7&339ADA2C&0&_&0#{53F56307-B6BF-11D0-94F2-00A0C91EFB8B}";
+        Present = TRUE;
+        Service = "WUDFWpdFs";
+        Status = "OK";
+        SystemCreationClassName = "Win32_ComputerSystem";
+        SystemName = "DESKTOP-8KM6DT0";
+    };
+
+
+```
+
+
+
+```json
+C:\Users\User-39\Documents\GitHub\usb\.venv\Scripts\python.exe C:\Users\User-39\Documents\GitHub\usb\apps\view\gui.py 
+run USB connection search 
+
+instance of Win32_DiskDrive
+{
+	BytesPerSector = 512;
+	Capabilities = {3, 4};
+	CapabilityDescriptions = {"Random Access", "Supports Writing"};
+	Caption = "TOSHIBA DT01ACA100";
+	ConfigManagerErrorCode = 0;
+	ConfigManagerUserConfig = FALSE;
+	CreationClassName = "Win32_DiskDrive";
+	Description = "Дисковый накопитель";
+	DeviceID = "\\\\.\\PHYSICALDRIVE1";
+	FirmwareRevision = "MS2OA8A0";
+	Index = 1;
+	InterfaceType = "IDE";
+	Manufacturer = "(Стандартные дисковые накопители)";
+	MediaLoaded = TRUE;
+	MediaType = "Fixed hard disk media";
+	Model = "TOSHIBA DT01ACA100";
+	Name = "\\\\.\\PHYSICALDRIVE1";
+	Partitions = 4;
+	PNPDeviceID = "SCSI\\DISK&VEN_ATA&PROD_TOSHIBA_DT01ACA1\\4&301B2274&0&000200";
+	SCSIBus = 0;
+	SCSILogicalUnit = 0;
+	SCSIPort = 1;
+	SCSITargetId = 2;
+	SectorsPerTrack = 63;
+	SerialNumber = "           325Z11EMS";
+	Size = "1000202273280";
+	Status = "OK";
+	SystemCreationClassName = "Win32_ComputerSystem";
+	SystemName = "DESKTOP-8KM6DT0";
+	TotalCylinders = "121601";
+	TotalHeads = 255;
+	TotalSectors = "1953520065";
+	TotalTracks = "31008255";
+	TracksPerCylinder = 255;
+};
+
+
+instance of Win32_DiskDrive
+{
+	BytesPerSector = 512;
+	Capabilities = {3, 4};
+	CapabilityDescriptions = {"Random Access", "Supports Writing"};
+	Caption = "Lexar SSD NM620 256GB";
+	ConfigManagerErrorCode = 0;
+	ConfigManagerUserConfig = FALSE;
+	CreationClassName = "Win32_DiskDrive";
+	Description = "Дисковый накопитель";
+	DeviceID = "\\\\.\\PHYSICALDRIVE0";
+	FirmwareRevision = "11099";
+	Index = 0;
+	InterfaceType = "SCSI";
+	Manufacturer = "(Стандартные дисковые накопители)";
+	MediaLoaded = TRUE;
+	MediaType = "Fixed hard disk media";
+	Model = "Lexar SSD NM620 256GB";
+	Name = "\\\\.\\PHYSICALDRIVE0";
+	Partitions = 3;
+	PNPDeviceID = "SCSI\\DISK&VEN_NVME&PROD_LEXAR_SSD_NM620\\5&1CFF39D7&0&000000";
+	SCSIBus = 0;
+	SCSILogicalUnit = 0;
+	SCSIPort = 0;
+	SCSITargetId = 0;
+	SectorsPerTrack = 63;
+	SerialNumber = "0000_0006_2401_2676_CAF2_5B02_0000_127F.";
+	Size = "256052966400";
+	Status = "OK";
+	SystemCreationClassName = "Win32_ComputerSystem";
+	SystemName = "DESKTOP-8KM6DT0";
+	TotalCylinders = "31130";
+	TotalHeads = 255;
+	TotalSectors = "500103450";
+	TotalTracks = "7938150";
+	TracksPerCylinder = 255;
+};
+
+
+
+```
+
+```json lines
+instance of Win32_DiskDrive
+{
+	BytesPerSector = 512;
+	Capabilities = {3, 4, 7};
+	CapabilityDescriptions = {"Random Access", "Supports Writing", "Supports Removable Media"};
+	Caption = "General UDisk USB Device";
+	ConfigManagerErrorCode = 0;
+	ConfigManagerUserConfig = FALSE;
+	CreationClassName = "Win32_DiskDrive";
+	Description = "Дисковый накопитель";
+	DeviceID = "\\\\.\\PHYSICALDRIVE2";
+	FirmwareRevision = "5.00";
+	Index = 2;
+	InterfaceType = "USB";
+	Manufacturer = "(Стандартные дисковые накопители)";
+	MediaLoaded = TRUE;
+	MediaType = "Removable Media";
+	Model = "General UDisk USB Device";
+	Name = "\\\\.\\PHYSICALDRIVE2";
+	Partitions = 1;
+	PNPDeviceID = "USBSTOR\\DISK&VEN_GENERAL&PROD_UDISK&REV_5.00\\7&339ADA2C&0&_&0";
+	SCSIBus = 0;
+	SCSILogicalUnit = 0;
+	SCSIPort = 0;
+	SCSITargetId = 0;
+	SectorsPerTrack = 63;
+	SerialNumber = "\t";
+	Signature = 1;
+	Size = "526417920";
+	Status = "OK";
+	SystemCreationClassName = "Win32_ComputerSystem";
+	SystemName = "DESKTOP-8KM6DT0";
+	TotalCylinders = "64";
+	TotalHeads = 255;
+	TotalSectors = "1028160";
+	TotalTracks = "16320";
+	TracksPerCylinder = 255;
+};
+```
+
+
+### Micro SD ma'lumotlari
+
+```json lines
+instance of Win32_DiskDrive
+{
+	BytesPerSector = 512;
+	Capabilities = {3, 4, 7};
+	CapabilityDescriptions = {"Random Access", "Supports Writing", "Supports Removable Media"};
+	Caption = "Mass Storage Device USB Device";
+	ConfigManagerErrorCode = 0;
+	ConfigManagerUserConfig = FALSE;
+	CreationClassName = "Win32_DiskDrive";
+	Description = "Дисковый накопитель";
+	DeviceID = "\\\\.\\PHYSICALDRIVE2";
+	FirmwareRevision = "1.00";
+	Index = 2;
+	InterfaceType = "USB";
+	Manufacturer = "(Стандартные дисковые накопители)";
+	MediaLoaded = TRUE;
+	MediaType = "Removable Media";
+	Model = "Mass Storage Device USB Device";
+	Name = "\\\\.\\PHYSICALDRIVE2";
+	Partitions = 1;
+	PNPDeviceID = "USBSTOR\\DISK&VEN_MASS&PROD_STORAGE_DEVICE&REV_1.00\\121220160204&0";
+	SCSIBus = 0;
+	SCSILogicalUnit = 0;
+	SCSIPort = 0;
+	SCSITargetId = 0;
+	SectorsPerTrack = 63;
+	SerialNumber = "121220160204";
+	Signature = 0;
+	Size = "127861977600";
+	Status = "OK";
+	SystemCreationClassName = "Win32_ComputerSystem";
+	SystemName = "DESKTOP-8KM6DT0";
+	TotalCylinders = "15545";
+	TotalHeads = 255;
+	TotalSectors = "249730425";
+	TotalTracks = "3963975";
+	TracksPerCylinder = 255;
+};
+        
+        
+instance of Win32_PnPEntity
+{
+	Caption = "Mass Storage Device USB Device";
+	ClassGuid = "{4d36e967-e325-11ce-bfc1-08002be10318}";
+	CompatibleID = {"USBSTOR\\Disk", "USBSTOR\\RAW", "GenDisk"};
+	ConfigManagerErrorCode = 0;
+	ConfigManagerUserConfig = FALSE;
+	CreationClassName = "Win32_PnPEntity";
+	Description = "Дисковый накопитель";
+	DeviceID = "USBSTOR\\DISK&VEN_MASS&PROD_STORAGE_DEVICE&REV_1.00\\121220160204&0";
+	HardwareID = {"USBSTOR\\DiskMass____Storage_Device__1.00", "USBSTOR\\DiskMass____Storage_Device__", "USBSTOR\\DiskMass____", "USBSTOR\\Mass____Storage_Device__1", "Mass____Storage_Device__1", "USBSTOR\\GenDisk", "GenDisk"};
+	Manufacturer = "(Стандартные дисковые накопители)";
+	Name = "Mass Storage Device USB Device";
+	PNPClass = "DiskDrive";
+	PNPDeviceID = "USBSTOR\\DISK&VEN_MASS&PROD_STORAGE_DEVICE&REV_1.00\\121220160204&0";
+	Present = TRUE;
+	Service = "disk";
+	Status = "OK";
+	SystemCreationClassName = "Win32_ComputerSystem";
+	SystemName = "DESKTOP-8KM6DT0";
+};
+
+```
