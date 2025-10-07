@@ -1,3 +1,5 @@
+import time
+
 from apps.db.database import LocalDatabase
 from apps.core.usb_eject import UsbEject
 from concurrent.futures import ThreadPoolExecutor
@@ -8,6 +10,7 @@ Bu qisim asosy  doimiy portni nazorat qiladi ulanishlarni tekshiradi  umuman o'c
  UsbWatcher alohida exe fayil bo'ladi va doimiy ishlaydi 
 """
 
+
 class UsbWatcher:
     def __init__(self):
         self.db = LocalDatabase()
@@ -15,46 +18,42 @@ class UsbWatcher:
         # ✅ Maksimal 10 ta thread bir vaqtning o'zida eject bajaradi
         self.executor = ThreadPoolExecutor(max_workers=10)
 
-
-    def phone_checker(self):
+    def phone_checker(self, device):
         import pythoncom
-        import wmi
+
+        pythoncom.CoInitialize()  # Har bir thread uchun COM initialize
 
         """
         MTP/WPD qurilmalarni aniqlaydi (telefonlar, planshetlar).
         """
-        print("🔍 MTP/WPD qurilmalarni qidirish boshlandi")
         try:
-            pythoncom.CoInitialize()  # Har bir thread uchun COM initialize
-            w = wmi.WMI()
+            # instance of Win32_PnPEntity
+            # {
+            # 	Caption = "Redmi Note 13 Pro";
+            # 	ClassGuid = "{eec5ad98-8080-425f-922a-dabf3de3f69a}";
+            # 	CompatibleID = {"USB\\MS_COMP_MTP", "USB\\Class_06&SubClass_01&Prot_01", "USB\\Class_06&SubClass_01", "USB\\Class_06"};
+            # 	ConfigManagerErrorCode = 0;
+            # 	ConfigManagerUserConfig = FALSE;
+            # 	CreationClassName = "Win32_PnPEntity";
+            # 	Description = "Redmi Note 13 Pro";
+            # 	DeviceID = "USB\\VID_2717&PID_FF48&MI_00\\7&593ED88&0&0000";
+            # 	HardwareID = {"USB\\VID_2717&PID_FF48&REV_0223&MI_00", "USB\\VID_2717&PID_FF48&MI_00"};
+            # 	Manufacturer = "Xiaomi";
+            # 	Name = "Redmi Note 13 Pro";
+            # 	PNPClass = "WPD";
+            # 	PNPDeviceID = "USB\\VID_2717&PID_FF48&MI_00\\7&593ED88&0&0000";
+            # 	Present = TRUE;
+            # 	Service = "WUDFWpdMtp";
+            # 	Status = "OK";
+            # 	SystemCreationClassName = "Win32_ComputerSystem";
+            # 	SystemName = "DESKTOP-8KM6DT0";
+            # };
+            caption = getattr(device, "Caption", "") or ""
+            manufacturer = getattr(device, "Manufacturer", "") or ""
+            pnpid = getattr(device, "PNPDeviceID", "") or ""
 
-            for device in w.Win32_PnPEntity():
-                try:
-                    # MTP/WPD qurilmalarni aniqlash uchun kengroq shartlar
-                    pnp_class = getattr(device, 'PNPClass', None) or ""
-                    name = getattr(device, 'Name', 'Noma\'lum qurilma')
-                    compatible_id = str(getattr(device, 'CompatibleID', ''))
-                    device_id = getattr(device, 'DeviceID', '')
-
-                    # MTP yoki WPD qurilmalarni tekshirish
-                    if (pnp_class.upper() in ['WPD', 'PORTABLEDEVICE'] or
-                            any(keyword in compatible_id.upper() for keyword in ['MTP', 'WPD']) or
-                            any(keyword in name.upper() for keyword in ['MTP', 'PORTABLE DEVICE', 'PHONE'])):
-                        # print(f"📱 Telefon aniqlandi: {name}")
-                        # print(f"  PNPDeviceID: {device_id}")
-                        # print(f"  PNPClass: {pnp_class}")
-                        # print(f"  CompatibleID: {compatible_id}")
-                        # print("*"*50)
-                        # print("\n")
-
-                        # Ma'lumotlarni bazaga yozish
-                        self.db.log_access(name, "WPD Device", pnp_class, None, None)
-
-                        # MTP ulanishini tekshirish
-                        self.eject.mtp_connection_checker(mode=device_id)
-
-                except Exception as inner_e:
-                    print(f"⚠️ Qurilma tekshirishda xato: {inner_e}")
+            self.eject.mtp_connection_eject(pnpid)
+            self.db.log_access(caption=caption, model=manufacturer, serial=pnpid, size=None, interface_type="MTP", )
 
         except Exception as e:
             print(f"❌ MTP/WPD qidirishda xato: {e}")
@@ -62,107 +61,48 @@ class UsbWatcher:
             pythoncom.CoUninitialize()  # COM resurslarini tozalash
 
 
-    # def check_connection_usb(self):
-    #     import pythoncom, wmi
-    #     pythoncom.CoInitialize()
-    #     try:
-    #         w = wmi.WMI()
-    #         for disk in w.Win32_DiskDrive():
-    #             if disk.InterfaceType in ['SCSI', 'USB']:
-    #                 serial = getattr(disk, 'SerialNumber', None)
-    #                 if not serial:
-    #                     print("⚠️ Diqqat: USB qurilma seriya raqami topilmadi")
-    #                     continue
-    #
-    #                 # serialni normalize qilish
-    #                 serial = serial.strip().rstrip('.')
-    #                 print(f"Serial: {serial}")
-    #
-    #                 registered = self.db.is_serial_registered(serial)
-    #                 print(f"DB register: {registered}")
-    #
-    #                 if not registered:
-    #                     # qurilmani eject qilish
-    #                     try:
-    #                         self.eject.eject_by_pnp(pnp_id_substring=disk.PNPDeviceID)
-    #                         # logga yozish
-    #                         self.db.log_access(
-    #                             disk.Caption,
-    #                             disk.Model,
-    #                             disk.InterfaceType,
-    #                             disk.Size,
-    #                             serial
-    #                         )
-    #                     except Exception as e:
-    #                         print(f"❌ Eject xatolik: {e}")
-    #                 else:
-    #                     print(f"✅ Bu USB allaqachon ro‘yxatdan o‘tgan {serial}")
-    #     finally:
-    #         pythoncom.CoUninitialize()
 
-
-
-    def check_connection_usb(self):
+    def check_connection_usb(self, device):
         print("run USB connection search ")
 
         import pythoncom, wmi
         pythoncom.CoInitialize()
         try:
-            w = wmi.WMI()
-            for disk in w.Win32_DiskDrive():
-                # print("run USB connection search with for loop")
 
-                try:
-                    # ❗ faqat USB disklarni tekshirish
-                    if disk.InterfaceType != 'USB':
-                        continue
+            pnp_id = getattr(device, "PNPDeviceID", "") or ""
 
-                    serial = getattr(disk, 'SerialNumber', None)
-                    if not serial:
-                        print("⚠️ Serial topilmadi")
-                        continue
+            c = wmi.WMI()
+            for disk in c.Win32_DiskDrive():
+                if getattr(disk, "PNPDeviceID", "").strip().lower() == pnp_id.strip().lower():
+                    print(getattr(disk, "PNPDeviceID", ""))
 
-                    # serial = normalize_serial(serial)
-                    print(f"Serial: {serial}")
+                    print("\n📀 Qurilma haqida to‘liq ma’lumot:")
+                    print(f"  Model: {disk.Model}")
+                    print(f"  InterfaceType: {disk.InterfaceType}")
+                    print(f"  SerialNumber: {getattr(disk, 'SerialNumber', 'Nomaʼlum')}")
+                    print(f"  Size: {int(disk.Size) / (1024 ** 3):.2f} GB")
+                    print(f"  FirmwareRevision: {disk.FirmwareRevision}")
+                    print(f"  MediaType: {disk.MediaType}")
+                    print(f"  DeviceID: {disk.DeviceID}")
+                    print(f"  Status: {disk.Status}")
+                    print(f"  Caption: {disk.Caption}")
+                    print("-" * 70)
 
-                    registered = self.db.is_serial_registered(serial)
-                    print(f"DB register: {registered}")
+                    print(disk)
 
-                    if not registered:
-                        print(disk.PNPDeviceID)
-                        self.eject.eject_usb_device(pnp_device_id=disk.PNPDeviceID)
-                        # try:
-                        #     pnp_id = str(disk.PNPDeviceID)
-                        #     print("PNPDeviceID yuborilmoqda:", pnp_id)
-                        #
-                        #     # ✅ argumentni to‘liq yuborish
-                        #     # subprocess.run(f'"{EXE_USB_EJECT}" "{disk.PNPDeviceID}"', shell=True)
-                        #
-                        # except Exception as e:
-                        #     print(f"Eject xatolik: {e}")
+                    print("-" * 70)
+                    break
+        except wmi.x_wmi_timed_out:
+            pass
+        except KeyboardInterrupt:
+            print("To‘xtatildi.")
+            pass
 
-                        self.db.log_access(
-                            disk.Caption,
-                            disk.Model,
-                            disk.InterfaceType,
-                            disk.Size,
-                            serial
-                        )
-                    else:
-                        print(f"✅ Ro‘yxatdan o‘tgan: {serial}")
-                except Exception as inner:
-                    print(f"⚠️ Diskni tekshirishda xato: {inner}")
-        finally:
-            pythoncom.CoUninitialize()
+        except Exception as e:
+            print("[Xato]:", e)
+            time.sleep(1)
 
-
-
-
-
-
-
-
-
+        pythoncom.CoUninitialize()
 
 # if __name__ == '__main__':
 #     usb = UsbWatcher()
@@ -178,3 +118,26 @@ class UsbWatcher:
 #         print("\nDastur to'xtatildi")
 #     finally:
 #         usb.db.close_connection()
+#
+#                         if not registered:
+#                             print(disk.PNPDeviceID)
+#                             self.eject.eject_usb_device(pnp_device_id=disk.PNPDeviceID)
+#                             # try:
+#                             #     pnp_id = str(disk.PNPDeviceID)
+#                             #     print("PNPDeviceID yuborilmoqda:", pnp_id)
+#                             #
+#                             #     # ✅ argumentni to‘liq yuborish
+#                             #     # subprocess.run(f'"{EXE_USB_EJECT}" "{disk.PNPDeviceID}"', shell=True)
+#                             #
+#                             # except Exception as e:
+#                             #     print(f"Eject xatolik: {e}")
+#
+#                             self.db.log_access(
+#                                 disk.Caption,
+#                                 disk.Model,
+#                                 disk.InterfaceType,
+#                                 disk.Size,
+#                                 serial
+#                             )
+
+

@@ -21,8 +21,6 @@ class UsbEject:
         :param pnp_device_id: USBSTOR\DISK&VEN_... kabi Device Instance ID.
         :return: (bool, str) - Muvaffaqiyat holati va xabar.
         """
-
-
         try:
             # 2. subprocess.run orqali C dasturini chaqirish
             # 'shell=True' administrator huquqlari bilan ishlashga yordam beradi,
@@ -65,11 +63,10 @@ class UsbEject:
             return False, f"Subprocess ishga tushirishda kutilmagan xato: {e}"
 
     @staticmethod
-    def mtp_connection_checker(mode):
+    def mtp_connection_eject(mode):
         """
         Telefonni USB rejimini o‘zgartiradi.
         """
-        # exe_path = r"C:\Users\nmada\CLionProjects\untitled3\cmake-build-debug\untitled3.exe"
 
         try:
             # .exe ni phone_id argumenti bilan ishga tushirish
@@ -93,7 +90,7 @@ class UsbEject:
         except Exception as e:
             print(f"Python xatosi: {str(e)}")
 
-if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        ejector = UsbEject()
-        ejector.eject_by_pnp(sys.argv[1])
+# if __name__ == '__main__':
+#     if len(sys.argv) > 1:
+#         ejector = UsbEject()
+#         ejector.eject_by_pnp(sys.argv[1])
