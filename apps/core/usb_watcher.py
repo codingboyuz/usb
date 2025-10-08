@@ -68,11 +68,48 @@ class UsbWatcher:
         import pythoncom, wmi
         pythoncom.CoInitialize()
         try:
+            c = wmi.WMI()
 
+            # WMI obyekt atributlarini olish
             pnp_id = getattr(device, "PNPDeviceID", "") or ""
 
-            c = wmi.WMI()
+            print(pnp_id)
+            service = getattr(device, "Service", "") or ""
+            name = getattr(device, "Name", "") or ""
+
+
+            # instance of Win32_PnPEntity
+            # {
+            # 	Caption = "VendorCo ProductCode USB Device";
+            # 	ClassGuid = "{4d36e967-e325-11ce-bfc1-08002be10318}";
+            # 	CompatibleID = {"USBSTOR\\Disk", "USBSTOR\\RAW", "GenDisk"};
+            # 	ConfigManagerErrorCode = 0;
+            # 	ConfigManagerUserConfig = FALSE;
+            # 	CreationClassName = "Win32_PnPEntity";
+            # 	Description = "Дисковый накопитель";
+            # 	DeviceID = "USBSTOR\\DISK&VEN_VENDORCO&PROD_PRODUCTCODE&REV_2.00\\3759361002453620343&0";
+            # 	HardwareID = {"USBSTOR\\DiskVendorCoProductCode_____2.00", "USBSTOR\\DiskVendorCoProductCode_____", "USBSTOR\\DiskVendorCo", "USBSTOR\\VendorCoProductCode_____2", "VendorCoProductCode_____2", "USBSTOR\\GenDisk", "GenDisk"};
+            # 	Manufacturer = "(Стандартные дисковые накопители)";
+            # 	Name = "VendorCo ProductCode USB Device";
+            # 	PNPClass = "DiskDrive";
+            # 	PNPDeviceID = "USBSTOR\\DISK&VEN_VENDORCO&PROD_PRODUCTCODE&REV_2.00\\3759361002453620343&0";
+            # 	Present = TRUE;
+            # 	Service = "disk";
+            # 	Status = "OK";
+            # 	SystemCreationClassName = "Win32_ComputerSystem";
+            # 	SystemName = "DESKTOP-8KM6DT0";
+            # };
+            print(getattr(device, "PNPDeviceID", ""))
+
+            # # faqat USB mass storage uchun
+            # if not pnp_id.startswith("USBSTOR"):
+            #     pass
+
+
+            # ⚡ Tez qidirish: Win32_DiskDrive da shu PNPDeviceID bilan mos obyektni topish
             for disk in c.Win32_DiskDrive():
+                print(disk)
+
                 if getattr(disk, "PNPDeviceID", "").strip().lower() == pnp_id.strip().lower():
                     print(getattr(disk, "PNPDeviceID", ""))
 
@@ -88,10 +125,8 @@ class UsbWatcher:
                     print(f"  Caption: {disk.Caption}")
                     print("-" * 70)
 
-                    print(disk)
+                    # print(disk)
 
-                    print("-" * 70)
-                    break
         except wmi.x_wmi_timed_out:
             pass
         except KeyboardInterrupt:

@@ -477,3 +477,62 @@ instance of Win32_PnPEntity
 };
 
 ```
+
+
+# Bu ko'd windows api bilan ishlaydi
+
+
+```python
+import threading
+import time
+import win32con
+import win32gui
+import pythoncom
+import wmi
+from datetime import datetime
+from apps.core.usb_watcher import UsbWatcher
+
+class DeviceMonitor:
+    def __init__(self):
+        wc = win32gui.WNDCLASS()
+        wc.lpfnWndProc = self.wnd_proc
+        wc.lpszClassName = "DeviceChangeMonitor"
+        self.class_atom = win32gui.RegisterClass(wc)
+        self.connection_type = ConnectionType()
+
+        # Ko‘rinmas oyna yaratish
+        self.hwnd = win32gui.CreateWindow(
+            self.class_atom,
+            "HiddenDeviceMonitor",
+            0, 0, 0, 0, 0, 0, 0, 0, None
+        )
+
+    def wnd_proc(self, hwnd, msg, wparam, lparam):
+        if msg == win32con.WM_DEVICECHANGE:
+            if wparam == win32con.DBT_DEVICEARRIVAL:
+                print(f"🔌 [{datetime.now().strftime('%H:%M:%S')}] Qurilma ulandi.")
+                threading.Thread(target=self.connection_type.connection_device, daemon=True).start()
+
+            elif wparam == win32con.DBT_DEVNODES_CHANGED:
+                print(f"🔄 [{datetime.now().strftime('%H:%M:%S')}] Qurilma drayveri yangilandi.")
+                threading.Timer(0.3, lambda: threading.Thread(target=self.connection_type.connection_device, daemon=True).start()).start()
+
+            elif wparam == win32con.DBT_DEVICEREMOVECOMPLETE:
+                print(f"❌ [{datetime.now().strftime('%H:%M:%S')}] Qurilma uzildi.")
+        return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
+
+    @staticmethod
+    def run():
+        print("Start monitoring (real-time)...")
+        while True:
+            win32gui.PumpWaitingMessages()
+            time.sleep(0.05)
+
+
+if __name__ == "__main__":
+    monitor = DeviceMonitor()
+    monitor.run()
+
+```
+
+
