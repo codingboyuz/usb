@@ -6,11 +6,13 @@ import win32file
 import win32con
 import ctypes
 from settings.base import EXE_USB_EJECT
+
 # c da yozilgan usb izvlech qilish uchun
 
 """
 disk harifini aniqlab chiqarib yuorishga tayorlaydi 
 """
+
 class UsbEject:
 
     @staticmethod

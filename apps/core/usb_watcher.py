@@ -108,24 +108,37 @@ class UsbWatcher:
 
             # ⚡ Tez qidirish: Win32_DiskDrive da shu PNPDeviceID bilan mos obyektni topish
             for disk in c.Win32_DiskDrive():
-                print(disk)
+                # print(disk)
+                # ulanish turi faqat SCSI hard disk , USB
+                if disk.InterfaceType in ['SCSI', 'USB']:
+                    serial = getattr(disk, 'SerialNumber', None)
+                    print(serial)
+                    if serial:
+                        # usb seria raqami bo'lmasa
+                        if not self.db.is_serial_registered(serial=str(serial)):
+                            # PNPDeviceID disk harifini aniqlash uchun yuboradi
+                            self.eject.eject_usb_device(disk.PNPDeviceID)
+                            # ro'yxatdan o'tmagan usb ni db ga saqlab qo'yadi
+                            self.db.log_access(disk.Caption, disk.Model, disk.InterfaceType, disk.Size, serial)
 
-                if getattr(disk, "PNPDeviceID", "").strip().lower() == pnp_id.strip().lower():
-                    print(getattr(disk, "PNPDeviceID", ""))
-
-                    print("\n📀 Qurilma haqida to‘liq ma’lumot:")
-                    print(f"  Model: {disk.Model}")
-                    print(f"  InterfaceType: {disk.InterfaceType}")
-                    print(f"  SerialNumber: {getattr(disk, 'SerialNumber', 'Nomaʼlum')}")
-                    print(f"  Size: {int(disk.Size) / (1024 ** 3):.2f} GB")
-                    print(f"  FirmwareRevision: {disk.FirmwareRevision}")
-                    print(f"  MediaType: {disk.MediaType}")
-                    print(f"  DeviceID: {disk.DeviceID}")
-                    print(f"  Status: {disk.Status}")
-                    print(f"  Caption: {disk.Caption}")
-                    print("-" * 70)
-
-                    # print(disk)
+                    else:
+                        print("Diqqat: USB qurilma seriya raqami topilmadi")
+                # if getattr(disk, "PNPDeviceID", "").strip().lower() == pnp_id.strip().lower():
+                #     print(getattr(disk, "PNPDeviceID", ""))
+                #     self.eject.eject_usb_device(disk.PNPDeviceID)
+                #     print("\n📀 Qurilma haqida to‘liq ma’lumot:")
+                #     print(f"  Model: {disk.Model}")
+                #     print(f"  InterfaceType: {disk.InterfaceType}")
+                #     print(f"  SerialNumber: {getattr(disk, 'SerialNumber', 'Nomaʼlum')}")
+                #     print(f"  Size: {int(disk.Size) / (1024 ** 3):.2f} GB")
+                #     print(f"  FirmwareRevision: {disk.FirmwareRevision}")
+                #     print(f"  MediaType: {disk.MediaType}")
+                #     print(f"  DeviceID: {disk.DeviceID}")
+                #     print(f"  Status: {disk.Status}")
+                #     print(f"  Caption: {disk.Caption}")
+                #     print("-" * 70)
+                #
+                #     # print(disk)
 
         except wmi.x_wmi_timed_out:
             pass

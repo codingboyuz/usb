@@ -23,7 +23,7 @@ class ConnectionType:
         # if service.startswith("USBSTOR") or "DISK" in desc.upper():
         #     print(f"💾 USB Flesh yoki tashqi HDD: {device}")
         #     self.usb.check_connection_usb(device=device)
-        if service=="DISK":
+        if service.upper() == "DISK":
 
             print(f"💾 USB Flesh yoki tashqi DISK HDD: {device}")
             self.usb.check_connection_usb(device=device)
@@ -38,7 +38,7 @@ class ConnectionType:
             print(f"📱 MTP Telefon (Media Transfer Protocol): {name}")
             # print(device)
 
-            # self.usb.phone_checker(device=device)
+            self.usb.phone_checker(device=device)
 
         elif service.upper() == "WINUSB" and "ADB" in name.upper():
             print(f"🐍 Android Debug (ADB Interface): {name}")
@@ -61,6 +61,8 @@ class ConnectionType:
 
         else:
             # print(device)
+            if name =="Samsung AU7100 50 TV":
+                print(device)
             print(f"❔ Aniqlanmagan qurilma: {name} [{service}]")
 
 
@@ -88,7 +90,7 @@ class DeviceMonitor:
 
                     if device:
                         # print(device)
-                        threading.Timer(0.1,lambda :threading.Thread(target=self.connection_type.classify_device(device),daemon=True).start()).start()
+                        # threading.Timer(0.1,lambda :threading.Thread(target=self.connection_type.classify_device(device),daemon=True).start()).start()
                         threading.Thread(target=self.connection_type.classify_device(device), daemon=True).start()
 
                 except wmi.x_wmi_timed_out:
