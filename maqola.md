@@ -1,6 +1,4 @@
-Zoʻr — aniq va bosqichma-bosqich tushuntiraman: **Windows tizimi USB qurilmaning “ulanishi”ni qanday aniqlaydi**, **qaysi draiverlar / kernel komponentlari ishtirok etadi**, va **qaysi qatlamda (user-mode vs kernel-mode) eng tez va ishonchli aniqlash / bloklash amalga oshiriladi**. Oxirida amaliy tavsiya va muhim Microsoft hujjatlari (manbalar) bor.
 
----
 
 # 1) Qisqacha arxitektura — kim nimani bajaradi
 
