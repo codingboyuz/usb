@@ -536,3 +536,502 @@ if __name__ == "__main__":
 ```
 
 
+c++ ko'di 
+```c++
+// // Windows API ni har doim Unicode (Wide-Character) versiyalarini ishlatishga majburlash
+// #define UNICODE
+// #define _UNICODE
+//
+// #include <windows.h>
+// #include <iostream>
+// #include <dbt.h>        // USB hodisalari uchun
+// #include <initguid.h>
+// #include <setupapi.h>   // SetupAPI funksiyalari uchun
+// #include <cfgmgr32.h>   // Configuration Manager funksiyalari uchun
+// #include <string>
+// #include <io.h>
+// #include <fcntl.h>
+// #include <cstdio> // _fileno uchun
+//
+//
+// // USB qurilmalar interfeysi GUID si.
+// DEFINE_GUID(GUID_DEVINTERFACE_USB_DEVICE,
+//             0xA5DCBF10L, 0x6530, 0x11D2, 0x90, 0x1F, 0x00, 0xC0, 0x4F, 0xB9, 0x51, 0xED);
+//
+//
+// // --------------------------------------------------------------------------
+// // PnP Ma'lumotlarini (VID/PID) Qurilma Yo'lidan Ajratib Olish
+// // --------------------------------------------------------------------------
+// // --------------------------------------------------------------------------
+// // PnP Ma'lumotlarini (VID/PID) Qurilma Yo'lidan Ajratib Olish (Tuzatilgan)
+// // --------------------------------------------------------------------------
+// std::wstring extract_vid_pid(const std::wstring &devicePath) {
+//     // vid_ qismining boshlanishini qidirish
+//     size_t vidStartPos = devicePath.find(L"VID_");
+//
+//     // Agar topilmasa, kichik harf bilan ham qidirib ko'ramiz (ba'zi tizimlarda farq qilishi mumkin)
+//     if (vidStartPos == std::wstring::npos) {
+//         vidStartPos = devicePath.find(L"vid_");
+//     }
+//
+//     if (vidStartPos == std::wstring::npos) {
+//         return L"Noma'lum VID/PID (VID topilmadi)";
+//     }
+//
+//     // vid_ dan keyin 4ta belgi VID bo'ladi
+//     std::wstring vid = devicePath.substr(vidStartPos + 4, 4);
+//
+//     // pid_ qismining boshlanishini qidirish
+//     size_t pidStartPos = devicePath.find(L"PID_");
+//
+//     if (pidStartPos == std::wstring::npos) {
+//         pidStartPos = devicePath.find(L"pid_");
+//     }
+//
+//     if (pidStartPos == std::wstring::npos) {
+//         return L"Noma'lum VID/PID (PID topilmadi)";
+//     }
+//
+//     // pid_ dan keyin 4ta belgi PID bo'ladi
+//     std::wstring pid = devicePath.substr(pidStartPos + 4, 4);
+//
+//     return L"VID: " + vid + L", PID: " + pid;
+// }
+//
+// // --------------------------------------------------------------------------
+// // Qurilmaning qo'shimcha PnP ma'lumotlarini olish (Hardware ID, Tavsif)
+// // --------------------------------------------------------------------------
+// void get_full_pnp_info(const std::wstring &devicePath) {
+//     // Qurilmalar ro'yxatini shakllantirish
+//     HDEVINFO hDevInfo = SetupDiGetClassDevs(
+//         &GUID_DEVINTERFACE_USB_DEVICE,
+//         NULL,
+//         NULL,
+//         DIGCF_PRESENT | DIGCF_DEVICEINTERFACE
+//     );
+//
+//     if (hDevInfo == INVALID_HANDLE_VALUE) return;
+//
+//     SP_DEVICE_INTERFACE_DATA deviceInterfaceData = {sizeof(SP_DEVICE_INTERFACE_DATA)};
+//     DWORD memberIndex = 0;
+//
+//     // Qurilmalar ro'yxatini aylanib chiqish
+//     while (SetupDiEnumDeviceInterfaces(hDevInfo, NULL, &GUID_DEVINTERFACE_USB_DEVICE, memberIndex,
+//                                        &deviceInterfaceData)) {
+//         memberIndex++;
+//
+//         DWORD requiredSize = 0;
+//         SetupDiGetDeviceInterfaceDetail(hDevInfo, &deviceInterfaceData, NULL, 0, &requiredSize, NULL);
+//
+//         if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+//             // Zarur bufer hajmini ajratish
+//             SP_DEVICE_INTERFACE_DETAIL_DATA *detailData = (SP_DEVICE_INTERFACE_DETAIL_DATA *) malloc(requiredSize);
+//             if (!detailData) continue;
+//             detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+//
+//             SP_DEVINFO_DATA deviceInfoData = {sizeof(SP_DEVINFO_DATA)};
+//
+//             if (SetupDiGetDeviceInterfaceDetail(hDevInfo, &deviceInterfaceData, detailData, requiredSize, NULL,
+//                                                 &deviceInfoData)) {
+//                 // Topilgan qurilma interfeysi yo'lini solishtirish
+//                 if (devicePath == detailData->DevicePath) {
+//                     WCHAR buffer[1024];
+//                     DWORD size = sizeof(buffer);
+//
+//                     std::wcout << L"  - To'liq PnP ma'lumotlari: " << std::endl;
+//
+//                     // 1. Hardware ID (Apparat ID)ni olish
+//                     if (SetupDiGetDeviceRegistryProperty(
+//                         hDevInfo, &deviceInfoData, SPDRP_HARDWAREID,
+//                         NULL, (PBYTE) buffer, size, NULL)) {
+//                         std::wcout << L"    > Hardware ID: " << buffer << std::endl;
+//                     }
+//
+//                     // 2. Qurilmaning Tavsifini olish
+//                     if (SetupDiGetDeviceRegistryProperty(
+//                         hDevInfo, &deviceInfoData, SPDRP_DEVICEDESC,
+//                         NULL, (PBYTE) buffer, size, NULL)) {
+//                         std::wcout << L"    > Tavsifi: " << buffer << std::endl;
+//                     }
+//
+//                     // 3. Qurilma Instansiyasi Yo'lini olish
+//                     if (SetupDiGetDeviceRegistryProperty(
+//                         hDevInfo, &deviceInfoData, SPDRP_SERVICE,
+//                         NULL, (PBYTE) buffer, size, NULL)) {
+//                         std::wcout << L"    > Xizmat/Drayver: " << buffer << std::endl;
+//                     }
+//
+//                     free(detailData);
+//                     SetupDiDestroyDeviceInfoList(hDevInfo);
+//                     return; // Ma'lumotlar topildi
+//                 }
+//             }
+//             free(detailData);
+//         }
+//     }
+//
+//     SetupDiDestroyDeviceInfoList(hDevInfo);
+// }
+//
+//
+// // --------------------------------------------------------------------------
+// // Hodisalarni Qayta Ishlash Funksiyasi
+// // --------------------------------------------------------------------------
+//
+// void HandleDeviceChange(WPARAM wParam, LPARAM lParam) {
+//     if (wParam == DBT_DEVICEARRIVAL) {
+//         DEV_BROADCAST_HDR *dbh = (DEV_BROADCAST_HDR *) lParam;
+//
+//         if (dbh->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE) {
+//             DEV_BROADCAST_DEVICEINTERFACE *dbdi =
+//                     (DEV_BROADCAST_DEVICEINTERFACE *) dbh;
+//
+//             std::wstring devicePath(dbdi->dbcc_name);
+//             std::wstring vidPidInfo = extract_vid_pid(devicePath);
+//
+//             std::wcout << L"\n==============================================" << std::endl;
+//             std::wcout << L"[+] USB Qurilmasi Ulandi!" << std::endl;
+//             std::wcout << L"    PnP Interfeys Yo'li: " << devicePath << std::endl;
+//             std::wcout << L"    Asosiy ID: " << vidPidInfo << std::endl;
+//
+//             get_full_pnp_info(devicePath);
+//             std::wcout << L"==============================================" << std::endl;
+//         }
+//     } else if (wParam == DBT_DEVICEREMOVECOMPLETE) {
+//         DEV_BROADCAST_HDR *dbh = (DEV_BROADCAST_HDR *) lParam;
+//         if (dbh->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE) {
+//             DEV_BROADCAST_DEVICEINTERFACE *dbdi =
+//                     (DEV_BROADCAST_DEVICEINTERFACE *) dbh;
+//
+//             std::wcout << L"\n[-] USB Qurilmasi Uzildi: " << dbdi->dbcc_name << std::endl;
+//         }
+//     }
+// }
+//
+//
+// // --------------------------------------------------------------------------
+// // Oyna Protsedurasi (WndProc) - Xabarlarni Qayta Ishlash
+// // --------------------------------------------------------------------------
+//
+// LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+//     switch (message) {
+//         case WM_DEVICECHANGE:
+//             HandleDeviceChange(wParam, lParam);
+//             return TRUE;
+//
+//         case WM_CLOSE:
+//             PostQuitMessage(0);
+//             break;
+//
+//         default:
+//             return DefWindowProc(hWnd, message, wParam, lParam);
+//     }
+//     return 0;
+// }
+//
+//
+// // --------------------------------------------------------------------------
+// // USB Hodisalariga Obuna Bo'lish
+// // --------------------------------------------------------------------------
+//
+// HDEVNOTIFY RegisterForUsbNotifications(HWND hWnd) {
+//     DEV_BROADCAST_DEVICEINTERFACE NotificationFilter;
+//
+//     ZeroMemory(&NotificationFilter, sizeof(NotificationFilter));
+//     NotificationFilter.dbcc_size = sizeof(DEV_BROADCAST_DEVICEINTERFACE);
+//     NotificationFilter.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
+//     NotificationFilter.dbcc_classguid = GUID_DEVINTERFACE_USB_DEVICE;
+//
+//     return RegisterDeviceNotification(
+//         hWnd,
+//         &NotificationFilter,
+//         DEVICE_NOTIFY_WINDOW_HANDLE
+//     );
+// }
+//
+// // --------------------------------------------------------------------------
+// // Asosiy Kirish Nuqtasi
+// // --------------------------------------------------------------------------
+//
+// int main() {
+//     // Konsol chiqqisini Unicode rejimiga o'rnatish
+//     _setmode(_fileno(stdout), _O_U16TEXT);
+//
+//     std::wcout << L"==============================================" << std::endl;
+//     std::wcout << L"USB Monitor: Ishga Tushdi (Administrator huquqi talab qilinadi!)" << std::endl;
+//     std::wcout << L"Chiqish uchun oynani yoping yoki Ctrl+C bosing." << std::endl;
+//     std::wcout << L"==============================================" << std::endl;
+//
+//     // Oyna sinfini ro'yxatdan o'tkazish
+//     WNDCLASSEX wc = {sizeof(WNDCLASSEX)};
+//     wc.lpfnWndProc = WndProc;
+//     wc.hInstance = GetModuleHandle(NULL);
+//     wc.lpszClassName = L"UsbMonitorClass";
+//
+//     if (!RegisterClassEx(&wc)) {
+//         std::wcerr << L"Xato: Oyna sinfini ro'yxatdan o'tkazib bo'lmadi." << std::endl;
+//         return 1;
+//     }
+//
+//     // Yashirin (xabar) oynasini yaratish.
+//     HWND hWnd = CreateWindowEx(
+//         0,
+//         L"UsbMonitorClass",
+//         NULL,
+//         0,
+//         0, 0, 0, 0,
+//         HWND_MESSAGE,
+//         NULL,
+//         GetModuleHandle(NULL),
+//         NULL
+//     );
+//
+//     if (hWnd == NULL) {
+//         std::wcerr << L"Xato: Yashirin oyna yaratib bo'lmadi. Kod: " << GetLastError() << std::endl;
+//         return 1;
+//     }
+//
+//     HDEVNOTIFY hNotify = RegisterForUsbNotifications(hWnd);
+//
+//     if (hNotify == NULL) {
+//         std::wcerr << L"Xato: Hodisalarga obuna bo'lib bo'lmadi. Kod: " << GetLastError() << std::endl;
+//         DestroyWindow(hWnd);
+//         return 1;
+//     }
+//
+//     // Asosiy xabarlar tsikli (Message Loop)
+//     MSG msg;
+//     while (GetMessage(&msg, NULL, 0, 0) > 0) {
+//         TranslateMessage(&msg);
+//         DispatchMessage(&msg);
+//     }
+//
+//     UnregisterDeviceNotification(hNotify);
+//     DestroyWindow(hWnd);
+//
+//     return 0;
+// }
+// Windows API ni har doim Unicode (Wide-Character) versiyalarini ishlatishga majburlash
+
+// Windows API ni har doim Unicode (Wide-Character) versiyalarini ishlatishga majburlash
+
+
+
+
+#include <iostream>
+#include <string>
+#include <windows.h>
+#include <comdef.h>     // _bstr_t, _com_error uchun
+#include <Wbemidl.h>    // WMI interfeyslari uchun
+
+#include <io.h>         // _setmode, _fileno uchun
+#include <fcntl.h>      // _O_U16TEXT uchun
+#include <cstdio>       // _fileno uchun
+
+#pragma comment(lib, "wbemuuid.lib")
+#pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "oleaut32.lib")
+
+using namespace std;
+
+// WMI dan string xususiyatini o'qish va chop etish uchun yordamchi funksiya
+void PrintWmiProperty(IWbemClassObject* pclsObj, LPCWSTR propertyName) {
+    VARIANT vtProp;
+    VariantInit(&vtProp);
+    HRESULT hr = pclsObj->Get(propertyName, 0, &vtProp, 0, 0);
+
+    wcout << L"  " << propertyName << L" = ";
+
+    if (SUCCEEDED(hr) && vtProp.vt == VT_BSTR) {
+        wcout << vtProp.bstrVal << endl;
+    } else if (SUCCEEDED(hr) && (vtProp.vt == VT_I4 || vtProp.vt == VT_BOOL)) {
+        // Raqamlar (ErrorCode) yoki Bool qiymatlarini chiqarish
+        wcout << vtProp.lVal << endl;
+    }
+    else {
+        wcout << L"[Mavjud emas]" << endl;
+    }
+
+    if (vtProp.vt != VT_EMPTY) {
+        VariantClear(&vtProp);
+    }
+}
+
+// Win32_PnPEntity ma'lumotlarini olishning asosiy funksiyasi
+void GetPnpEntityInfo() {
+    HRESULT hres;
+
+    // 1. COM ni ishga tushirish
+    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+    if (FAILED(hres)) {
+        wcerr << L"Xato: CoInitializeEx. Kod: " << hex << hres << endl;
+        return;
+    }
+
+    // 2. Xavfsizlik darajasini o'rnatish
+    hres = CoInitializeSecurity(
+        NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL
+    );
+
+    if (FAILED(hres)) {
+        wcerr << L"Xato: CoInitializeSecurity. Kod: " << hex << hres << endl;
+        CoUninitialize();
+        return;
+    }
+
+    // 3. WMI xizmatiga ulanish
+    IWbemLocator* pLoc = NULL;
+    hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLoc);
+
+    if (FAILED(hres)) {
+        wcerr << L"Xato: IWbemLocator yaratish. Kod: " << hex << hres << endl;
+        CoUninitialize();
+        return;
+    }
+
+    IWbemServices* pSvc = NULL;
+    hres = pLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, 0, 0, NULL, &pSvc);
+
+    if (FAILED(hres)) {
+        wcerr << L"Xato: ConnectServer. Kod: " << hex << hres << endl;
+        pLoc->Release();
+        CoUninitialize();
+        return;
+    }
+
+    // 4. Service xavfsizlik darajasini o'rnatish
+    hres = CoSetProxyBlanket(
+       pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE
+    );
+
+    if (FAILED(hres)) {
+        wcerr << L"Xato: CoSetProxyBlanket. Kod: " << hex << hres << endl;
+        pSvc->Release();
+        pLoc->Release();
+        CoUninitialize();
+        return;
+    }
+
+    // 5. Ma'lumotlarni so'rash (Win32_PnPEntity klassini so'raymiz)
+    IEnumWbemClassObject* pEnumerator = NULL;
+    hres = pSvc->ExecQuery(
+        _bstr_t(L"WQL"),
+        _bstr_t(L"SELECT * FROM Win32_PnPEntity"),
+        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+        NULL,
+        &pEnumerator
+    );
+
+    if (FAILED(hres)) {
+        wcerr << L"Xato: ExecQuery. Kod: " << hex << hres << endl;
+        pSvc->Release();
+        pLoc->Release();
+        CoUninitialize();
+        return;
+    }
+
+    // 6. Natijalarni ko'rsatish
+    IWbemClassObject* pclsObj = NULL;
+    ULONG uReturn = 0;
+
+    wcout << L"\n=======================================================" << endl;
+    wcout << L"Win32_PnPEntity WMI Ma'lumotlari (Barcha PnP Qurilmalar)" << endl;
+    wcout << L"=======================================================" << endl;
+
+    while (pEnumerator) {
+        HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
+
+        if (0 == uReturn) break;
+
+        wcout << L"\n--- YANGI PnP QURILMASI ---" << endl;
+
+        // Siz so'ragan xususiyatlarni chiqarish
+        PrintWmiProperty(pclsObj, L"Caption");
+        PrintWmiProperty(pclsObj, L"Name");
+        PrintWmiProperty(pclsObj, L"Description");
+        PrintWmiProperty(pclsObj, L"DeviceID");
+        PrintWmiProperty(pclsObj, L"PNPClass");
+        PrintWmiProperty(pclsObj, L"ClassGuid");
+        PrintWmiProperty(pclsObj, L"PNPDeviceID");
+        PrintWmiProperty(pclsObj, L"Manufacturer");
+        PrintWmiProperty(pclsObj, L"Service");
+        PrintWmiProperty(pclsObj, L"Status");
+        PrintWmiProperty(pclsObj, L"ConfigManagerErrorCode");
+
+        // Majmuaviy (Array) qiymatlar uchun (CompatibleID, HardwareID) maxsus ishlov berish kerak.
+        // Hozirda faqat oddiy string/son qiymatlari chiqariladi.
+
+        pclsObj->Release();
+    }
+
+    // 7. Resurslarni tozalash
+    if (pSvc) pSvc->Release();
+    if (pLoc) pLoc->Release();
+    if (pEnumerator) pEnumerator->Release();
+    CoUninitialize();
+}
+
+int main() {
+    // Chiqishni Unicode qilib sozlash
+    if (_setmode(_fileno(stdout), _O_U16TEXT) == -1) {
+        cerr << "Xato: Chiqishni Unicode formatiga o'rnatib bo'lmadi." << endl;
+    }
+
+    GetPnpEntityInfo();
+
+    wcout << L"\nChiqish uchun istalgan tugmani bosing..." << endl;
+
+    // Konsol yopilishini kutish
+    cin.get();
+    return 0;
+}
+```
+```
+#cmake_minimum_required(VERSION 3.27)
+#project(usb_monitor CXX)
+#
+#set(CMAKE_CXX_STANDARD 17)
+#
+#add_executable(usb_monitor main.cpp)
+#
+## Windows API funksiyalarini ishlata olish uchun majburiy kutubxonalarni qo'shamiz
+#target_link_libraries(usb_monitor PRIVATE
+#        # Asosiy Windows kutubxonalari
+#        kernel32
+#        user32
+#        advapi32
+#
+#        # SetupAPI va Configuration Manager (PnP ma'lumotlari uchun)
+#        setupapi
+#        cfgmgr32
+#)
+#
+## Konsol dasturini majburlash (WinMain xatosini hal qiladi)
+#target_link_options(usb_monitor PRIVATE
+#        "-Wl,-subsystem,console"
+#)
+
+
+cmake_minimum_required(VERSION 3.27)
+project(pnp_entity_info CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+
+add_executable(pnp_entity_info main.cpp)
+
+# WMI va COM uchun zarur kutubxonalar
+target_link_libraries(pnp_entity_info PRIVATE
+        kernel32
+        user32
+        advapi32
+        ole32       # COM funksiyalari uchun
+        oleaut32    # BSTR va Variantlar uchun
+        wbemuuid    # WMI GUIDlari uchun
+)
+
+target_link_options(pnp_entity_info PRIVATE
+        "-Wl,-subsystem,console"
+)
+```
+
+
