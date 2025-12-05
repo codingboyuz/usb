@@ -1034,4 +1034,94 @@ target_link_options(pnp_entity_info PRIVATE
 )
 ```
 
+```c++
+#include <iostream>
+#include <Windows.h>
+#include <SetupAPI.h>
+#include <devguid.h>
+#include <Cfgmgr32.h>
+#include <initguid.h>
+#include <io.h>
+#include <fcntl.h>
 
+// Eslatma: Bu kodni ishlatish uchun CMakeLists.txt ga
+// target_link_libraries(my_usb_only PRIVATE setupapi) qatorini qo'shing.
+const GUID GUID_DEVCLASS_WPD = {0xEEC5AD98, 0x8080, 0x425F, {0x92, 0x2A, 0xDA, 0xBF, 0x3D, 0xE3, 0xF6, 0x9A}};
+const GUID GUID_DEVCLASS_USB =
+        {0x36fc9e60L, 0xc465, 0x11cf, {0x80, 0x56, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}};
+// Windowsda USB qurilmalarining GUIDlarini chiqarish funksiyasi
+void PrintDeviceGUIDs() {
+    HDEVINFO hDevInfo;
+    SP_DEVINFO_DATA DevInfoData;
+    DWORD i;
+
+    // Barcha USB qurilmalari ro'yxatini olish
+    hDevInfo = SetupDiGetClassDevs(
+        &GUID_DEVCLASS_USB, // Faqat Sichqoncha sinfini qidir
+        NULL, // Enumerator yo'q (Windows barcha drayverlarni tekshiradi)
+        NULL,
+        DIGCF_PRESENT // Faqat mavjud qurilmalar
+        // DIGCF_ALLCLASSES ni olib tashladik
+    );
+
+    if (hDevInfo == INVALID_HANDLE_VALUE) {
+        // Xato xabarini ham Unicode (wchar_t) da chiqarish
+        std::wcerr << L"Xatolik: SetupDiGetClassDevs() bajarilmadi. Xato kodi: " << GetLastError() << std::endl;
+        return;
+    }
+
+    DevInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
+    // Ro'yxatdagi qurilmalarni aylanib chiqish
+    for (i = 0; SetupDiEnumDeviceInfo(hDevInfo, i, &DevInfoData); i++) {
+        // Qurilma nomini (tavsifini) olish (Bu wchar_t bo'lishi kerak, shuning uchun L"..." dan foydalanamiz)
+        wchar_t DeviceName[MAX_PATH];
+        if (SetupDiGetDeviceRegistryPropertyW( // W - wide character versiyasini chaqiramiz
+            hDevInfo,
+            &DevInfoData,
+            SPDRP_DEVICEDESC,
+            NULL,
+            (PBYTE) DeviceName,
+            sizeof(DeviceName),
+            NULL
+        )) {
+            // Class GUIDni olish va stringga o'tkazish
+            OLECHAR GuidString[40];
+
+            if (StringFromGUID2(DevInfoData.ClassGuid, GuidString, ARRAYSIZE(GuidString))) {
+                std::wcout << L"--------------------------------------" << std::endl;
+                // Barcha chiqishlar std::wcout orqali amalga oshiriladi
+                std::wcout << L"Qurilma nomi: " << DeviceName << std::endl;
+                std::wcout << L"  Class GUID: " << GuidString << std::endl;
+            } else {
+                std::wcout << L"Qurilma nomi: " << DeviceName << L" (GUID'ni o'qib bo'lmadi)" << std::endl;
+            }
+        }
+    }
+
+    SetupDiDestroyDeviceInfoList(hDevInfo);
+}
+
+int main() {
+    // RUNTIME LIBRARY XATOSINI KELTIRIB CHIQARUVCHI QATOR OLIB TASHLANDI.
+    // std::wcout endi o'zbekcha va unicode matnlarni ishonchliroq chiqarishi kerak.
+
+    std::wcout << L"Kompyuterga ulangan USB qurilmalarining GUIDlari:" << std::endl;
+    PrintDeviceGUIDs();
+    return 0;
+}
+
+```
+
+---
+```c++
+cmake_minimum_required(VERSION 3.20)
+project(my_usb_only)
+
+set(CMAKE_CXX_STANDARD 17)
+
+add_executable(my_usb_only main.cpp)
+
+target_link_libraries(my_usb_only setupapi)
+
+```
