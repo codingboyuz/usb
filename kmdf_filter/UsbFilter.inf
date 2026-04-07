@@ -1,0 +1,71 @@
+; UsbFilter.inf
+; USBSTOR class qurilmalari uchun upper filter driver o'rnatish fayli.
+;
+; O'rnatish:
+;   1. Administrator sifatida CMD oching
+;   2. pnputil /add-driver UsbFilter.inf /install
+;   Yoki: devcon dp_add UsbFilter.inf
+;
+; Test rejimida ishlatish (imzosiz driver):
+;   bcdedit /set testsigning on
+;   (Qayta yuklash kerak)
+;
+; Olib tashlash:
+;   pnputil /delete-driver oem<N>.inf /uninstall
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = USB
+ClassGUID   = {36FC9E60-C465-11CF-8056-444553540000}
+Provider    = %ManufacturerName%
+DriverVer   = 04/07/2025,1.0.0.1
+CatalogFile = UsbFilter.cat
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 12          ; \Windows\System32\drivers
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+UsbFilter.sys = 1,,
+
+; ─── USBSTOR class qurilmalari uchun (USB Flash, HDD, M.2 adapter) ────────
+[Manufacturer]
+%ManufacturerName% = Standard,NTamd64
+
+[Standard.NTamd64]
+; Barcha USBSTOR\DISK qurilmalariga qo'llaniladi
+%DeviceDesc% = UsbFilter_Device, USBSTOR\GenDisk
+%DeviceDesc% = UsbFilter_Device, USBSTOR\Disk
+
+[UsbFilter_Device.NT]
+CopyFiles = UsbFilter_CopyFiles
+AddReg    = UsbFilter_AddReg
+
+[UsbFilter_CopyFiles]
+UsbFilter.sys
+
+[UsbFilter_AddReg]
+; UpperFilters ro'yxatiga qo'shish — mavjud drayverlarni o'zgartirmaydi
+HKR,,"UpperFilters",  0x00010008, "UsbFilter"
+
+; ─── Service (drayver xizmati) ────────────────────────────────────────────
+[UsbFilter_Device.NT.Services]
+AddService = UsbFilter,,UsbFilter_Service_Install
+
+[UsbFilter_Service_Install]
+DisplayName    = %ServiceDesc%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\UsbFilter.sys
+LoadOrderGroup = PnP Filter
+
+; ─── Strings ──────────────────────────────────────────────────────────────
+[Strings]
+ManufacturerName = "MyUSBOnly"
+DiskName         = "USB Filter Driver Disk"
+DeviceDesc       = "USB Storage Filter"
+ServiceDesc      = "USB Storage Filter Driver"

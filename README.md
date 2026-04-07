@@ -1,4 +1,64 @@
 # Eject phone
+● ---                                
+  Natija — Arxitektura                                                                    
+
+  USB qurilma ulanadi                                                                                                                                                                                                               
+          │
+          ▼                                                                                                                                                                                                                         
+  ┌───────────────────────────┐                                                                                                                                                                                                   
+  │  KMDF Filter Driver       │  ← KERNEL daraja (0 ms kechikish)
+  │  (UsbFilter.sys)          │     IRP_MN_START_DEVICE ushlanadi
+  │  Serial → whitelist?      │     Yo'q → STATUS_ACCESS_DENIED
+  │  Ha → IRP o'tkaziladi     │     Qurilma hech qachon ishga tushmaydi
+  └───────────────────────────┘
+          │ (ruxsat etilgan qurilma)
+          ▼
+  ┌───────────────────────────┐
+  │  Python UsbWatcher        │  ← USER daraja (WMI, ~500ms)
+  │  device_classifier.py     │     Qurilma turini aniq aniqlaydi
+  │  device_logger.py         │     Fayl + DB ga log yozadi
+  │  usb_watcher.py           │     GUI'ga xabar beradi
+  └───────────────────────────┘
+
+  ---
+  Qurilma turi farqlash jadvali
+
+  ┌───────────────────┬───────────────┬─────────────────┬─────────────────────┐
+  │      Qurilma      │ InterfaceType │    MediaType    │ Model da kalit so'z │
+  ├───────────────────┼───────────────┼─────────────────┼─────────────────────┤
+  │ USB Flash         │ USB           │ Removable Media │ —                   │
+  ├───────────────────┼───────────────┼─────────────────┼─────────────────────┤
+  │ Tashqi HDD        │ USB           │ Fixed/External  │ —                   │
+  ├───────────────────┼───────────────┼─────────────────┼─────────────────────┤
+  │ Tashqi SSD        │ USB           │ Fixed           │ SSD                 │
+  ├───────────────────┼───────────────┼─────────────────┼─────────────────────┤
+  │ M.2 adapter       │ USB           │ Fixed           │ NVMe, M.2, M2       │
+  ├───────────────────┼───────────────┼─────────────────┼─────────────────────┤
+  │ Tashqi HDD (SCSI) │ SCSI          │ —               │ —                   │
+  ├───────────────────┼───────────────┼─────────────────┼─────────────────────┤
+  │ Telefon MTP       │ —             │ —               │ PNPClass=WPD        │
+  ├───────────────────┼───────────────┼─────────────────┼─────────────────────┤
+  │ Telefon ADB       │ —             │ —               │ Service=WinUSB+ADB  │
+  └───────────────────┴───────────────┴─────────────────┴─────────────────────┘
+
+  ---
+  KMDF driver qurilish uchun kerakli dasturlar
+
+  # 1. O'rnatish
+  Visual Studio 2022  →  https://visualstudio.microsoft.com/
+  WDK (Windows Driver Kit) → https://learn.microsoft.com/windows-hardware/drivers/download-the-wdk
+
+  # 2. Test rejimini yoqish (imzosiz driver uchun)
+  bcdedit /set testsigning on
+  # Kompyuterni qayta yuklash
+
+  # 3. Driverni o'rnatish
+  pnputil /add-driver UsbFilter.inf /install
+
+  # 4. DebugView bilan KdPrint loglarini ko'rish
+  # DebugView → https://learn.microsoft.com/sysinternals/downloads/debugview
+
+  Muhim: KMDF driver avval Virtual Machine (VMware/VirtualBox) da sinab ko'ring — noto'g'ri driver BSOD chiqarishi mumkin.
 
 ```python
 import subprocess

@@ -2,12 +2,14 @@ import time
 
 from apps.db.database import LocalDatabase
 from apps.core.usb_eject import UsbEject
+from apps.core.device_classifier import classify_disk_device, classify_pnp_device
+from apps.core.device_logger import log_device_connected, log_device_blocked, log_eject_result
 from concurrent.futures import ThreadPoolExecutor
-from settings.base import EXE_USB_EJECT
 
 """
-Bu qisim asosy  doimiy portni nazorat qiladi ulanishlarni tekshiradi  umuman o'chmasligi kerak bo'lagan app
- UsbWatcher alohida exe fayil bo'ladi va doimiy ishlaydi 
+Asosiy USB monitoring moduli.
+Qurilma ulanishini aniqlaydi, turini klassifikatsiya qiladi,
+whitelist tekshiradi, bloklaydi va log yozadi.
 """
 
 
@@ -15,142 +17,74 @@ class UsbWatcher:
     def __init__(self):
         self.db = LocalDatabase()
         self.eject = UsbEject()
-        # ✅ Maksimal 10 ta thread bir vaqtning o'zida eject bajaradi
         self.executor = ThreadPoolExecutor(max_workers=10)
 
     def phone_checker(self, device):
+        """MTP/WPD qurilmalarni aniqlaydi va bloklaydi (telefonlar, planshetlar)."""
         import pythoncom
-
-        pythoncom.CoInitialize()  # Har bir thread uchun COM initialize
-
-        """
-        MTP/WPD qurilmalarni aniqlaydi (telefonlar, planshetlar).
-        """
+        pythoncom.CoInitialize()
         try:
-            # instance of Win32_PnPEntity
-            # {
-            # 	Caption = "Redmi Note 13 Pro";
-            # 	ClassGuid = "{eec5ad98-8080-425f-922a-dabf3de3f69a}";
-            # 	CompatibleID = {"USB\\MS_COMP_MTP", "USB\\Class_06&SubClass_01&Prot_01", "USB\\Class_06&SubClass_01", "USB\\Class_06"};
-            # 	ConfigManagerErrorCode = 0;
-            # 	ConfigManagerUserConfig = FALSE;
-            # 	CreationClassName = "Win32_PnPEntity";
-            # 	Description = "Redmi Note 13 Pro";
-            # 	DeviceID = "USB\\VID_2717&PID_FF48&MI_00\\7&593ED88&0&0000";
-            # 	HardwareID = {"USB\\VID_2717&PID_FF48&REV_0223&MI_00", "USB\\VID_2717&PID_FF48&MI_00"};
-            # 	Manufacturer = "Xiaomi";
-            # 	Name = "Redmi Note 13 Pro";
-            # 	PNPClass = "WPD";
-            # 	PNPDeviceID = "USB\\VID_2717&PID_FF48&MI_00\\7&593ED88&0&0000";
-            # 	Present = TRUE;
-            # 	Service = "WUDFWpdMtp";
-            # 	Status = "OK";
-            # 	SystemCreationClassName = "Win32_ComputerSystem";
-            # 	SystemName = "DESKTOP-8KM6DT0";
-            # };
-            caption = getattr(device, "Caption", "") or ""
-            manufacturer = getattr(device, "Manufacturer", "") or ""
-            pnpid = getattr(device, "PNPDeviceID", "") or ""
+            info = classify_pnp_device(device)
+            if info is None:
+                return
 
-            self.eject.mtp_connection_eject(pnpid)
-            self.db.log_access(caption=caption, model=manufacturer, serial=pnpid, size=None, interface_type="MTP", )
+            # MTP telefonlarni bloklash siyosati
+            # (kerak bo’lsa whitelist qo’shish mumkin)
+            info.blocked = True
+            log_device_blocked(info, reason="MTP qurilmalarga ruxsat yo’q", db=self.db)
+            self.eject.mtp_connection_eject(info.pnp_device_id)
 
         except Exception as e:
-            print(f"❌ MTP/WPD qidirishda xato: {e}")
+            print(f"MTP/WPD xato: {e}")
         finally:
-            pythoncom.CoUninitialize()  # COM resurslarini tozalash
-
-
+            pythoncom.CoUninitialize()
 
     def check_connection_usb(self, device):
-        print("run USB connection search ")
-
+        """
+        USB disk qurilmalarini aniqlaydi:
+          - USB Flash xotira
+          - Tashqi HDD
+          - Tashqi SSD
+          - M.2/NVMe USB adapter
+        Whitelist tekshiradi, bloklaydi va log yozadi.
+        """
         import pythoncom, wmi
         pythoncom.CoInitialize()
         try:
             c = wmi.WMI()
-
-            # WMI obyekt atributlarini olish
             pnp_id = getattr(device, "PNPDeviceID", "") or ""
 
-            print(pnp_id)
-            service = getattr(device, "Service", "") or ""
-            name = getattr(device, "Name", "") or ""
-
-
-            # instance of Win32_PnPEntity
-            # {
-            # 	Caption = "VendorCo ProductCode USB Device";
-            # 	ClassGuid = "{4d36e967-e325-11ce-bfc1-08002be10318}";
-            # 	CompatibleID = {"USBSTOR\\Disk", "USBSTOR\\RAW", "GenDisk"};
-            # 	ConfigManagerErrorCode = 0;
-            # 	ConfigManagerUserConfig = FALSE;
-            # 	CreationClassName = "Win32_PnPEntity";
-            # 	Description = "Дисковый накопитель";
-            # 	DeviceID = "USBSTOR\\DISK&VEN_VENDORCO&PROD_PRODUCTCODE&REV_2.00\\3759361002453620343&0";
-            # 	HardwareID = {"USBSTOR\\DiskVendorCoProductCode_____2.00", "USBSTOR\\DiskVendorCoProductCode_____", "USBSTOR\\DiskVendorCo", "USBSTOR\\VendorCoProductCode_____2", "VendorCoProductCode_____2", "USBSTOR\\GenDisk", "GenDisk"};
-            # 	Manufacturer = "(Стандартные дисковые накопители)";
-            # 	Name = "VendorCo ProductCode USB Device";
-            # 	PNPClass = "DiskDrive";
-            # 	PNPDeviceID = "USBSTOR\\DISK&VEN_VENDORCO&PROD_PRODUCTCODE&REV_2.00\\3759361002453620343&0";
-            # 	Present = TRUE;
-            # 	Service = "disk";
-            # 	Status = "OK";
-            # 	SystemCreationClassName = "Win32_ComputerSystem";
-            # 	SystemName = "DESKTOP-8KM6DT0";
-            # };
-            print(getattr(device, "PNPDeviceID", ""))
-
-            # # faqat USB mass storage uchun
-            # if not pnp_id.startswith("USBSTOR"):
-            #     pass
-
-
-            # ⚡ Tez qidirish: Win32_DiskDrive da shu PNPDeviceID bilan mos obyektni topish
             for disk in c.Win32_DiskDrive():
-                # print(disk)
-                # ulanish turi faqat SCSI hard disk , USB
-                if disk.InterfaceType in ['SCSI', 'USB']:
-                    serial = getattr(disk, 'SerialNumber', None)
-                    print(serial)
-                    if serial:
-                        # usb seria raqami bo'lmasa
-                        if not self.db.is_serial_registered(serial=str(serial)):
-                            # PNPDeviceID disk harifini aniqlash uchun yuboradi
-                            self.eject.eject_usb_device(disk.PNPDeviceID)
-                            # ro'yxatdan o'tmagan usb ni db ga saqlab qo'yadi
-                            self.db.log_access(disk.Caption, disk.Model, disk.InterfaceType, disk.Size, serial)
+                if disk.InterfaceType not in (‘USB’, ‘SCSI’):
+                    continue
 
-                    else:
-                        print("Diqqat: USB qurilma seriya raqami topilmadi")
-                # if getattr(disk, "PNPDeviceID", "").strip().lower() == pnp_id.strip().lower():
-                #     print(getattr(disk, "PNPDeviceID", ""))
-                #     self.eject.eject_usb_device(disk.PNPDeviceID)
-                #     print("\n📀 Qurilma haqida to‘liq ma’lumot:")
-                #     print(f"  Model: {disk.Model}")
-                #     print(f"  InterfaceType: {disk.InterfaceType}")
-                #     print(f"  SerialNumber: {getattr(disk, 'SerialNumber', 'Nomaʼlum')}")
-                #     print(f"  Size: {int(disk.Size) / (1024 ** 3):.2f} GB")
-                #     print(f"  FirmwareRevision: {disk.FirmwareRevision}")
-                #     print(f"  MediaType: {disk.MediaType}")
-                #     print(f"  DeviceID: {disk.DeviceID}")
-                #     print(f"  Status: {disk.Status}")
-                #     print(f"  Caption: {disk.Caption}")
-                #     print("-" * 70)
-                #
-                #     # print(disk)
+                # Qurilma turini aniq aniqlash
+                info = classify_disk_device(disk)
+
+                if not info.serial:
+                    print(f"Seriya raqami topilmadi: {info.caption}")
+                    continue
+
+                # Whitelist tekshirish
+                if self.db.is_serial_registered(serial=str(info.serial)):
+                    info.blocked = False
+                    log_device_connected(info, db=self.db)
+                else:
+                    # Bloklash
+                    info.blocked = True
+                    log_device_blocked(info, reason="Serial whitelist’da yo’q", db=self.db)
+                    ok, msg = self.eject.eject_usb_device(disk.PNPDeviceID)
+                    log_eject_result(info, ok, msg)
 
         except wmi.x_wmi_timed_out:
             pass
         except KeyboardInterrupt:
-            print("To‘xtatildi.")
             pass
-
         except Exception as e:
-            print("[Xato]:", e)
+            print(f"[Xato]: {e}")
             time.sleep(1)
-
-        pythoncom.CoUninitialize()
+        finally:
+            pythoncom.CoUninitialize()
 
 # if __name__ == '__main__':
 #     usb = UsbWatcher()
